@@ -49,7 +49,7 @@ DOT             : '.';
 // Literals
 BooleanLiteral  : 'true' | 'false';
 
-StringLiteral   :   '"' StringCharacters? '"';
+StringLiteral   :   '"'StringCharacters?'"' | '\''StringCharacters?'\'';
 fragment StringCharacters
                 :   StringCharacter+;
 fragment StringCharacter
