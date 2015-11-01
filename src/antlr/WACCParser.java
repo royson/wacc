@@ -17,13 +17,19 @@ public class WACCParser extends Parser {
 	protected static final PredictionContextCache _sharedContextCache =
 		new PredictionContextCache();
 	public static final int
-		INTEGER=20, EXIT=3, GE=11, LT=12, WS=21, CLOSE_PARENTHESES=19, LINE_COMMENT=22, 
-		MOD=7, EQUAL=14, BEGIN=1, OR=17, ASSIGN=4, OPEN_PARENTHESES=18, GT=10, 
-		SUB=9, DIV=6, AND=16, END=2, MUL=5, LE=13, NOTEQUAL=15, ADD=8;
+		INTEGER=38, RBRACK=31, EXIT=4, UNARYOP=24, LBRACK=30, RBRACE=29, WHILE=16, 
+		LINE_COMMENT=41, LBRACE=28, ELSE=15, DO=17, SEMI=32, PRINT=7, LPAREN=26, 
+		IF=12, FI=13, SKIP=11, StringLiteral=36, FREE=5, RPAREN=27, WS=40, THEN=14, 
+		COMMA=33, BINARYOP=25, READ=9, IS=6, DONE=18, PRINTLN=8, BEGIN=1, RETURN=10, 
+		ASSIGN=23, PAIRELEM=22, IDENT=39, PAIR=20, PairLiteral=37, CALL=2, DOT=34, 
+		END=3, BASETYPE=19, NEWPAIR=21, BooleanLiteral=35;
 	public static final String[] tokenNames = {
-		"<INVALID>", "'begin'", "'end'", "'exit'", "'='", "'*'", "'/'", "'%'", 
-		"'+'", "'-'", "'>'", "'>='", "'<'", "'<='", "'=='", "'!='", "'&&'", "'||'", 
-		"'('", "')'", "INTEGER", "WS", "LINE_COMMENT"
+		"<INVALID>", "'begin'", "'call'", "'end'", "'exit'", "'free'", "'is'", 
+		"'print'", "'println'", "'read'", "'return'", "'skip'", "'if'", "'fi'", 
+		"'then'", "'else'", "'while'", "'do'", "'done'", "BASETYPE", "'pair'", 
+		"'newpair'", "PAIRELEM", "'='", "UNARYOP", "BINARYOP", "'('", "')'", "'{'", 
+		"'}'", "'['", "']'", "';'", "','", "'.'", "BooleanLiteral", "StringLiteral", 
+		"'null'", "INTEGER", "IDENT", "WS", "LINE_COMMENT"
 	};
 	public static final int
 		RULE_binaryOper = 0, RULE_expr = 1, RULE_prog = 2;
@@ -51,19 +57,7 @@ public class WACCParser extends Parser {
 		_interp = new ParserATNSimulator(this,_ATN,_decisionToDFA,_sharedContextCache);
 	}
 	public static class BinaryOperContext extends ParserRuleContext {
-		public TerminalNode MUL() { return getToken(WACCParser.MUL, 0); }
-		public TerminalNode DIV() { return getToken(WACCParser.DIV, 0); }
-		public TerminalNode AND() { return getToken(WACCParser.AND, 0); }
-		public TerminalNode LT() { return getToken(WACCParser.LT, 0); }
-		public TerminalNode OR() { return getToken(WACCParser.OR, 0); }
-		public TerminalNode LE() { return getToken(WACCParser.LE, 0); }
-		public TerminalNode EQUAL() { return getToken(WACCParser.EQUAL, 0); }
-		public TerminalNode GT() { return getToken(WACCParser.GT, 0); }
-		public TerminalNode NOTEQUAL() { return getToken(WACCParser.NOTEQUAL, 0); }
-		public TerminalNode MOD() { return getToken(WACCParser.MOD, 0); }
-		public TerminalNode GE() { return getToken(WACCParser.GE, 0); }
-		public TerminalNode SUB() { return getToken(WACCParser.SUB, 0); }
-		public TerminalNode ADD() { return getToken(WACCParser.ADD, 0); }
+		public TerminalNode BINARYOP() { return getToken(WACCParser.BINARYOP, 0); }
 		public BinaryOperContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
 		}
@@ -78,16 +72,10 @@ public class WACCParser extends Parser {
 	public final BinaryOperContext binaryOper() throws RecognitionException {
 		BinaryOperContext _localctx = new BinaryOperContext(_ctx, getState());
 		enterRule(_localctx, 0, RULE_binaryOper);
-		int _la;
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(6);
-			_la = _input.LA(1);
-			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << MUL) | (1L << DIV) | (1L << MOD) | (1L << ADD) | (1L << SUB) | (1L << GT) | (1L << GE) | (1L << LT) | (1L << LE) | (1L << EQUAL) | (1L << NOTEQUAL) | (1L << AND) | (1L << OR))) != 0)) ) {
-			_errHandler.recoverInline(this);
-			}
-			consume();
+			setState(6); match(BINARYOP);
 			}
 		}
 		catch (RecognitionException re) {
@@ -105,11 +93,11 @@ public class WACCParser extends Parser {
 		public List<ExprContext> expr() {
 			return getRuleContexts(ExprContext.class);
 		}
-		public TerminalNode CLOSE_PARENTHESES() { return getToken(WACCParser.CLOSE_PARENTHESES, 0); }
 		public ExprContext expr(int i) {
 			return getRuleContext(ExprContext.class,i);
 		}
-		public TerminalNode OPEN_PARENTHESES() { return getToken(WACCParser.OPEN_PARENTHESES, 0); }
+		public TerminalNode RPAREN() { return getToken(WACCParser.RPAREN, 0); }
+		public TerminalNode LPAREN() { return getToken(WACCParser.LPAREN, 0); }
 		public TerminalNode INTEGER() { return getToken(WACCParser.INTEGER, 0); }
 		public BinaryOperContext binaryOper() {
 			return getRuleContext(BinaryOperContext.class,0);
@@ -147,11 +135,11 @@ public class WACCParser extends Parser {
 				setState(9); match(INTEGER);
 				}
 				break;
-			case OPEN_PARENTHESES:
+			case LPAREN:
 				{
-				setState(10); match(OPEN_PARENTHESES);
+				setState(10); match(LPAREN);
 				setState(11); expr(0);
-				setState(12); match(CLOSE_PARENTHESES);
+				setState(12); match(RPAREN);
 				}
 				break;
 			default:
@@ -222,7 +210,7 @@ public class WACCParser extends Parser {
 			setState(28);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			while (_la==OPEN_PARENTHESES || _la==INTEGER) {
+			while (_la==LPAREN || _la==INTEGER) {
 				{
 				{
 				setState(25); expr(0);
@@ -260,16 +248,16 @@ public class WACCParser extends Parser {
 	}
 
 	public static final String _serializedATN =
-		"\3\u0430\ud6d1\u8206\uad2d\u4417\uaef1\u8d80\uaadd\3\30$\4\2\t\2\4\3\t"+
-		"\3\4\4\t\4\3\2\3\2\3\3\3\3\3\3\3\3\3\3\3\3\5\3\21\n\3\3\3\3\3\3\3\3\3"+
-		"\7\3\27\n\3\f\3\16\3\32\13\3\3\4\7\4\35\n\4\f\4\16\4 \13\4\3\4\3\4\3\4"+
-		"\2\3\4\5\2\4\6\2\3\3\2\7\23#\2\b\3\2\2\2\4\20\3\2\2\2\6\36\3\2\2\2\b\t"+
-		"\t\2\2\2\t\3\3\2\2\2\n\13\b\3\1\2\13\21\7\26\2\2\f\r\7\24\2\2\r\16\5\4"+
-		"\3\2\16\17\7\25\2\2\17\21\3\2\2\2\20\n\3\2\2\2\20\f\3\2\2\2\21\30\3\2"+
-		"\2\2\22\23\f\5\2\2\23\24\5\2\2\2\24\25\5\4\3\6\25\27\3\2\2\2\26\22\3\2"+
-		"\2\2\27\32\3\2\2\2\30\26\3\2\2\2\30\31\3\2\2\2\31\5\3\2\2\2\32\30\3\2"+
-		"\2\2\33\35\5\4\3\2\34\33\3\2\2\2\35 \3\2\2\2\36\34\3\2\2\2\36\37\3\2\2"+
-		"\2\37!\3\2\2\2 \36\3\2\2\2!\"\7\2\2\3\"\7\3\2\2\2\5\20\30\36";
+		"\3\u0430\ud6d1\u8206\uad2d\u4417\uaef1\u8d80\uaadd\3+$\4\2\t\2\4\3\t\3"+
+		"\4\4\t\4\3\2\3\2\3\3\3\3\3\3\3\3\3\3\3\3\5\3\21\n\3\3\3\3\3\3\3\3\3\7"+
+		"\3\27\n\3\f\3\16\3\32\13\3\3\4\7\4\35\n\4\f\4\16\4 \13\4\3\4\3\4\3\4\2"+
+		"\3\4\5\2\4\6\2\2#\2\b\3\2\2\2\4\20\3\2\2\2\6\36\3\2\2\2\b\t\7\33\2\2\t"+
+		"\3\3\2\2\2\n\13\b\3\1\2\13\21\7(\2\2\f\r\7\34\2\2\r\16\5\4\3\2\16\17\7"+
+		"\35\2\2\17\21\3\2\2\2\20\n\3\2\2\2\20\f\3\2\2\2\21\30\3\2\2\2\22\23\f"+
+		"\5\2\2\23\24\5\2\2\2\24\25\5\4\3\6\25\27\3\2\2\2\26\22\3\2\2\2\27\32\3"+
+		"\2\2\2\30\26\3\2\2\2\30\31\3\2\2\2\31\5\3\2\2\2\32\30\3\2\2\2\33\35\5"+
+		"\4\3\2\34\33\3\2\2\2\35 \3\2\2\2\36\34\3\2\2\2\36\37\3\2\2\2\37!\3\2\2"+
+		"\2 \36\3\2\2\2!\"\7\2\2\3\"\7\3\2\2\2\5\20\30\36";
 	public static final ATN _ATN =
 		new ATNDeserializer().deserialize(_serializedATN.toCharArray());
 	static {

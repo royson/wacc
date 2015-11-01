@@ -22,7 +22,7 @@ public class Main {
         WACCLexer myLexer = new WACCLexer(input);
         List<? extends Token> tokens = myLexer.getAllTokens();
         for (Token t: tokens) {
-            System.out.println(t.getLine() + ":" + t.getCharPositionInLine() + " " + t.getText());
+//            System.out.println(t.getLine() + ":" + t.getCharPositionInLine() + " " + t.getText() + "  " + t.getType());
         } 
     }
 }
