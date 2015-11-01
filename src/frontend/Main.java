@@ -23,8 +23,6 @@ public class Main {
         List<? extends Token> tokens = myLexer.getAllTokens();
         for (Token t: tokens) {
             System.out.println(t.getLine() + ":" + t.getCharPositionInLine() + " " + t.getText());
-        }
-        
- 
+        } 
     }
 }

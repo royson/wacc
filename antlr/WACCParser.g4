@@ -4,7 +4,7 @@ options {
   tokenVocab=WACCLexer;
 }
 
-binaryOper : PLUS | MINUS ;
+binaryOper : MUL | DIV | MOD | ADD | SUB | GT | GE | LT | LE | EQUAL | NOTEQUAL | AND | OR ;
 
 expr: expr binaryOper expr
 | INTEGER
