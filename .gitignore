@@ -37,3 +37,9 @@ testing/test_files/
 *.vrb
 *.nav
 *.toc
+
+#ignore folders
+bin/
+examples/
+
+
