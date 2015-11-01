@@ -18,11 +18,11 @@ public interface WACCParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitProg(@NotNull WACCParser.ProgContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link WACCParser#binaryOper}.
+	 * Visit a parse tree produced by {@link WACCParser#arrayElem}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitBinaryOper(@NotNull WACCParser.BinaryOperContext ctx);
+	T visitArrayElem(@NotNull WACCParser.ArrayElemContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link WACCParser#expr}.
 	 * @param ctx the parse tree

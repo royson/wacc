@@ -25,7 +25,7 @@ public class WACCParserBaseVisitor<T> extends AbstractParseTreeVisitor<T> implem
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
-	@Override public T visitBinaryOper(@NotNull WACCParser.BinaryOperContext ctx) { return visitChildren(ctx); }
+	@Override public T visitArrayElem(@NotNull WACCParser.ArrayElemContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
 	 *

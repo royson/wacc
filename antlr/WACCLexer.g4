@@ -1,17 +1,21 @@
 lexer grammar WACCLexer;
 
-// Keywords
+// Program
 BEGIN           : 'begin';
-CALL            : 'call';
 END             : 'end';
-EXIT            : 'exit';
-FREE            : 'free';
+
+// Function
 IS              : 'is';
+
+// Statement
+SKIP            : 'skip';
+ASSIGN          : '=';
+READ            : 'read';
+FREE            : 'free';
+RETURN          : 'return';
+EXIT            : 'exit';
 PRINT           : 'print';
 PRINTLN         : 'println';
-READ            : 'read';
-RETURN          : 'return';
-SKIP            : 'skip';
 
 IF              : 'if';
 FI              : 'fi';
@@ -22,18 +26,51 @@ WHILE           : 'while';
 DO              : 'do';
 DONE            : 'done';
 
-// Base types
-BASETYPE        : 'int' | 'bool' | 'char' | 'string';
-
-// Pair types
-PAIR            : 'pair';
+// Assign RHS
 NEWPAIR         : 'newpair';
+CALL            : 'call';
+
+// Pair elem
 PAIRELEM        : 'fst' | 'snd';
 
+// Base type
+BASETYPE        : 'int' | 'bool' | 'char' | 'string';
+
+// Pair type
+PAIR            : 'pair';
+
 // Operators
-ASSIGN       : '=';
-UNARYOP      : '!' | '-' | 'len' | 'ord' | 'chr';
-BINARYOP     : '*' | '/' | '%' | '+' | '-' | '>' | '>=' | '<' | '<=' | '==' | '!=' | '&&' | '||';
+UNARYOP         : '!' | '-' | 'len' | 'ord' | 'chr';
+BINARYOP        : '*' | '/' | '%' | '+' | '-' | '>' | '>=' | '<' | '<=' | '==' | '!=' | '&&' | '||';
+
+// Identifier
+IDENT           : [_a-zA-Z][_a-zA-Z0-9]*;
+
+// Int literal
+INTLITERAL      : INTSIGN? DIGIT+;
+fragment DIGIT  : ('0'..'9');
+fragment INTSIGN
+                : '+' | '-';
+
+// Boolean literal
+BOOLEANLITERAL  : 'true' | 'false';
+
+// Char literal
+CHARLITERAL     : '\''STRINGCHARACTER'\'';
+
+// String literal
+STRINGLITERAL   : '"' STRINGCHARACTERS? '"';
+
+// Support for string literal
+fragment STRINGCHARACTERS
+                : STRINGCHARACTER+;
+fragment STRINGCHARACTER
+                : ~["\\] | ESCAPESEQUENCE;
+fragment ESCAPESEQUENCE 
+                : '\\' [0btnfr"'\\];
+
+// Pair literal
+PAIRLITERAL     : 'null';
 
 // Separators
 LPAREN          : '(';
@@ -44,31 +81,6 @@ LBRACK          : '[';
 RBRACK          : ']';
 SEMI            : ';';
 COMMA           : ',';
-DOT             : '.';
-
-// Literals
-BooleanLiteral  : 'true' | 'false';
-
-StringLiteral   :   '"'StringCharacters?'"' | '\''StringCharacters?'\'';
-fragment StringCharacters
-                :   StringCharacter+;
-fragment StringCharacter
-                :   ~["\\] | EscapeSequence;
-
-// §3.10.6 Escape Sequences for Character and String Literals
-fragment
-EscapeSequence
-    :   '\\' [0btnfr"'\\]
-    ;
-
-PairLiteral     : 'null';
-
-// Numbers
-fragment DIGIT  : '0'..'9'; 
-INTEGER         : DIGIT+;
-
-// Identifier
-IDENT           : [_a-zA-Z][_a-zA-Z0-9]*;
 
 // Comments and whitespace
 WS              : [ \t\r\n\u000C]+ -> skip;
