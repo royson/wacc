@@ -31,7 +31,8 @@ NEWPAIR         : 'newpair';
 CALL            : 'call';
 
 // Pair elem
-PAIRELEM        : 'fst' | 'snd';
+FST             : 'fst';
+SND             : 'snd';
 
 // Base type
 BASETYPE        : 'int' | 'bool' | 'char' | 'string';
@@ -58,8 +59,8 @@ BOOLEANLITERAL  : 'true' | 'false';
 // Char literal
 CHARLITERAL     : '\''STRINGCHARACTER'\'';
 
-// String literal
-STRINGLITERAL   : '"' STRINGCHARACTERS? '"';
+// String literal -- changed
+STRINGLITERAL   : '"' STRINGCHARACTERS* '"';
 
 // Support for string literal
 fragment STRINGCHARACTERS
