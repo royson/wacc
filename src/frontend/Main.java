@@ -2,14 +2,18 @@ package frontend;
 
 import java.io.*;
 import java.util.List;
+
+import org.antlr.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.*;
 import antlr.WACCLexer;
+import antlr.WACCParser;
 
 public class Main {
     public static void main(String[] args) {
         // System.out.println(args[0]);
         String inputFile = args[0];
 
+        // Load file/input stream into ANTLRInputStream input
         ANTLRInputStream input = null;
         try {
             InputStream is = new FileInputStream(inputFile);
@@ -19,10 +23,24 @@ public class Main {
             e.printStackTrace();
         }
         
-        WACCLexer myLexer = new WACCLexer(input);
-        List<? extends Token> tokens = myLexer.getAllTokens();
+        // Create a lexer that reads from ANTLRInputStream         
+        WACCLexer lexer = new WACCLexer(input);
+        
+        // TESTING: print out all the tokens
+        List<? extends Token> tokens = lexer.getAllTokens();
         for (Token t: tokens) {
             System.out.println(t.getLine() + ":" + t.getCharPositionInLine() + " " + t.getText() + "  " + t.getType());
         } 
+        
+        // Create a buffer of tokens read from the lexer
+        CommonTokenStream tokenStream = new CommonTokenStream(lexer);
+        
+        // Create a parser that reads form the tokens buffer
+        WACCParser parser = new WACCParser(tokenStream);
+        
+//        ParseTree tree = parser.program();
+        
+        // Print a LISP-style parse tree
+//        System.out.println(tree.toStringTree());
     }
 }

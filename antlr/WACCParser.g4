@@ -68,6 +68,5 @@ pairElem: FST expr
 
 arrayLiter: LBRACK (expr (COMMA expr)*)? RBRACK;
 
-
 // EOF indicates that the program must consume to the end of the input.
 prog: (expr)*  EOF ;

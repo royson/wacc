@@ -59,8 +59,8 @@ BOOLEANLITERAL  : 'true' | 'false';
 // Char literal
 CHARLITERAL     : '\''STRINGCHARACTER'\'';
 
-// String literal -- changed
-STRINGLITERAL   : '"' STRINGCHARACTERS* '"';
+// String literal 
+STRINGLITERAL   : '"' STRINGCHARACTERS? '"';
 
 // Support for string literal
 fragment STRINGCHARACTERS
