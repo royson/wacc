@@ -26,17 +26,27 @@ public class Main {
         // Create a lexer that reads from ANTLRInputStream         
         WACCLexer lexer = new WACCLexer(input);
         
-        // TESTING: print out all the tokens
-        List<? extends Token> tokens = lexer.getAllTokens();
-        for (Token t: tokens) {
+        // TESTING: print out all the tokens using the lexer
+        List<? extends Token> tokensL = lexer.getAllTokens();
+        for (Token t: tokensL) {
             System.out.println(t.getLine() + ":" + t.getCharPositionInLine() + " " + t.getText() + "  " + t.getType());
         } 
+        
         
         // Create a buffer of tokens read from the lexer
         CommonTokenStream tokenStream = new CommonTokenStream(lexer);
         
         // Create a parser that reads form the tokens buffer
         WACCParser parser = new WACCParser(tokenStream);
+        
+        //TESTING: print out all the tokens using the parser
+        TokenStream parsertokens = parser.getTokenStream();
+        
+//        while (parsertokens.) {
+//        	Token t = parser.getCurrentToken();
+//            System.out.println(t.getLine() + ":" + t.getCharPositionInLine() + " " + t.getText() + "  " + t.getType());
+//        }
+//        
         
 //        ParseTree tree = parser.program();
         
