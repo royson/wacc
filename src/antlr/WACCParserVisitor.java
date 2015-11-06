@@ -72,12 +72,6 @@ public interface WACCParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitAssignLHS(@NotNull WACCParser.AssignLHSContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link WACCParser#prog}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitProg(@NotNull WACCParser.ProgContext ctx);
-	/**
 	 * Visit a parse tree produced by {@link WACCParser#arg_list}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

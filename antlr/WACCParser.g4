@@ -25,7 +25,7 @@ options {
 
 arrayElem : IDENT (LBRACK expr RBRACK)+;
 
-program: BEGIN (func)* (stat) END;
+program: (BEGIN (func)* (stat) END)* EOF;
 
 func: type IDENT LPAREN param_list? RPAREN IS stat END;
 
@@ -67,6 +67,3 @@ pairElem: FST expr
 ;
 
 arrayLiter: LBRACK (expr (COMMA expr)*)? RBRACK;
-
-// EOF indicates that the program must consume to the end of the input.
-prog: (expr)*  EOF ;
