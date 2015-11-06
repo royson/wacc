@@ -1,0 +1,1 @@
+./grun antlr.WACC program -gui< test.wacc 
