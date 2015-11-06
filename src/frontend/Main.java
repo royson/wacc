@@ -1,6 +1,8 @@
 package frontend;
 
 import java.io.*;
+import java.util.List;
+
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.*;
 
@@ -25,7 +27,7 @@ public class Main {
         WACCLexer lexer = new WACCLexer(input);
 
         // TESTING: print out all the tokens using the lexer
-//        List<? extends Token> tokensL = lexer.getAllTokens();
+        List<? extends Token> tokensL = lexer.getAllTokens();
 //        for (Token t : tokensL) {
 //             System.out.println(t.getLine() + ":" + t.getCharPositionInLine()
 //             + " " + t.getText() + "  " + t.getType());
@@ -38,10 +40,10 @@ public class Main {
         WACCParser parser = new WACCParser(tokenStream);
         ParseTree tree = parser.program();
 
-        System.out.println("====");
-        MyVisitor visitor = new MyVisitor();
-        visitor.visit(tree);
-        System.out.println("====");
+//        System.out.println("====");
+//        MyVisitor visitor = new MyVisitor();
+//        visitor.visit(tree);
+//        System.out.println("====");
 
     }
 }

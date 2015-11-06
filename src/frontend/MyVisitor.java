@@ -5,12 +5,12 @@ import antlr.WACCParser.TypeContext;
 
 public class MyVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitProgram(WACCParser.ProgramContext ctx) {
-        System.out.println("Entry");
+//        System.out.println("Entry");
         return visitChildren(ctx);
     }
 
     public Void visitFunc(WACCParser.FuncContext ctx) {
-        System.out.println("I found a function definition!");
+//        System.out.println("I found a function definition!");
 //        System.out.println(ctx.name.value);
 //        System.out.print("Type info: ");
 //        // need to visit function args in a loop

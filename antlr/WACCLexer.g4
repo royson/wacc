@@ -41,7 +41,7 @@ BASETYPE        : 'int' | 'bool' | 'char' | 'string';
 PAIR            : 'pair';
 
 // Operators
-UNARYOP         : '!' | '-' | 'len' | 'ord' | 'chr';
+UNARYOP         : '!' | '‐' | 'len' | 'ord' | 'chr';
 BINARYOP        : '*' | '/' | '%' | '+' | '-' | '>' | '>=' | '<' | '<=' | '==' | '!=' | '&&' | '||';
 
 // Identifier
@@ -51,7 +51,7 @@ IDENT           : [_a-zA-Z][_a-zA-Z0-9]*;
 INTLITERAL      : INTSIGN? DIGIT+;
 fragment DIGIT  : ('0'..'9');
 fragment INTSIGN
-                : '+' | '-';
+                : '+' | '‐';
 
 // Boolean literal
 BOOLEANLITERAL  : 'true' | 'false';

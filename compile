@@ -3,4 +3,5 @@
 # You are free to change the language used for this script,
 # but do *not* change its name.
 
-system "java bin/frontend/Main.class"
+v1 = ARGV[0]
+system "java -cp bin:lib/antlr-4.4-complete.jar frontend.Main #{v1}"
