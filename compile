@@ -5,9 +5,10 @@
 
 v1 = ARGV[0]
 output = `java -cp bin:lib/antlr-4.4-complete.jar frontend.Main #{v1}`; result = $?
-#puts output
 result = result.to_s
 exit_code = result.split(' ').last
 if exit_code == "100"
 	exit 100
+els if exit_code == "200"
+    exit 200
 end
