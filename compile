@@ -4,4 +4,4 @@
 # but do *not* change its name.
 
 v1 = ARGV[0]
-system "java -cp bin:lib/antlr-4.4-complete.jar frontend.Main #{v1}"
+system "java -cp bin:lib/antlr-4.4-complete.jar frontend.Main #{v1} ; echo $?"

@@ -35,8 +35,8 @@ public class Main {
         parser.removeErrorListeners();
         
         parser.addErrorListener(new WACCErrorListener());
+        
         ParseTree tree = parser.program();
-
 //        System.out.println("====");
 //        MyVisitor visitor = new MyVisitor();
 //        visitor.visit(tree);
