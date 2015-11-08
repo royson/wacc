@@ -17,8 +17,7 @@ public class Main {
         ANTLRInputStream input = null;
         try {
             InputStream is = new FileInputStream(inputFile);
-            Reader r = new InputStreamReader(is, "utf-8");
-            input = new ANTLRInputStream(r);
+            input = new ANTLRInputStream(is);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -26,24 +25,22 @@ public class Main {
         // Create a lexer that reads from ANTLRInputStream
         WACCLexer lexer = new WACCLexer(input);
 
-        // TESTING: print out all the tokens using the lexer
-        List<? extends Token> tokensL = lexer.getAllTokens();
-//        for (Token t : tokensL) {
-//             System.out.println(t.getLine() + ":" + t.getCharPositionInLine()
-//             + " " + t.getText() + "  " + t.getType());
-//        }
-
         // Create a buffer of tokens read from the lexer
         CommonTokenStream tokenStream = new CommonTokenStream(lexer);
 
         // Create a parser that reads form the tokens buffer
         WACCParser parser = new WACCParser(tokenStream);
+        
+        // Removes the default error Listener
+        parser.removeErrorListeners();
+        
+        parser.addErrorListener(new WACCErrorListener());
         ParseTree tree = parser.program();
 
-//        System.out.println("====");
-//        MyVisitor visitor = new MyVisitor();
-//        visitor.visit(tree);
-//        System.out.println("====");
+        System.out.println("====");
+        MyVisitor visitor = new MyVisitor();
+        visitor.visit(tree);
+        System.out.println("====");
 
     }
 }

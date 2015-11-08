@@ -1,12 +1,14 @@
-# division of a negative number by a negative number
+# variable declaration missing variable name
 
 # Output:
-# 2
+# #syntax_error#
+
+# Exit:
+# 100
+
 
 # Program:
 
 begin
-  int x = -4 ;
-  int y = -2 ;
-  println x / y
+  int = 42
 end

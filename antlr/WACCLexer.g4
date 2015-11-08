@@ -51,7 +51,7 @@ IDENT           : [_a-zA-Z][_a-zA-Z0-9]*;
 INTLITERAL      : INTSIGN? DIGIT+;
 fragment DIGIT  : ('0'..'9');
 fragment INTSIGN
-                : '+' | '‐';
+                : '+' | '-';
 
 // Boolean literal
 BOOLEANLITERAL  : 'true' | 'false';
