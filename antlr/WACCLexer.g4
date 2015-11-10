@@ -41,10 +41,10 @@ BASETYPE        : 'int' | 'bool' | 'char' | 'string';
 PAIR            : 'pair';
 
 // Operators
-// Hyphen minus seems to be the way to go
-UNARYOP         : '!' | MINUS | 'len' | 'ord' | 'chr';
-BINARYOP        : '*' | '/' | '%' | '+' | MINUS | '>' | '>=' | '<' | '<=' | '==' | '!=' | '&&' | '||';
-fragment MINUS  : '-';
+// Hyphen minus : -
+// Hyphen       : ‐
+UNARYOP         : '!' | '-' | 'len' | 'ord' | 'chr';
+BINARYOP        : '*' | '/' | '%' | ' + ' | ' - ' | '>' | '>=' | '<' | '<=' | '==' | '!=' | '&&' | '||';
 
 // Identifier
 IDENT           : [_a-zA-Z][_a-zA-Z0-9]*;
@@ -53,7 +53,7 @@ IDENT           : [_a-zA-Z][_a-zA-Z0-9]*;
 INTLITERAL      : INTSIGN? DIGIT+;
 fragment DIGIT  : ('0'..'9');
 fragment INTSIGN
-                : '+' | '‐';
+                : '+' | '-';
 
 // Boolean literal
 BOOLEANLITERAL  : 'true' | 'false';
