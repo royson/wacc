@@ -9,6 +9,6 @@ result = result.to_s
 exit_code = result.split(' ').last
 if exit_code == "100"
 	exit 100
-els if exit_code == "200"
+elsif exit_code == "200"
     exit 200
 end
