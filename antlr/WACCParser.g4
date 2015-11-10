@@ -33,19 +33,19 @@ param_list: param (COMMA param)*;
 
 param: type IDENT;
 
-stat: SKIP
-    | type IDENT ASSIGN assignRHS
-    | assignLHS ASSIGN assignRHS
-    | READ assignLHS
-    | FREE expr
-    | RETURN expr
-    | EXIT expr
-    | PRINT expr
-    | PRINTLN expr
-    | IF expr THEN stat ELSE stat FI
-    | WHILE expr DO stat DONE
-    | BEGIN stat END
-    | stat SEMI stat
+stat: SKIP                              #skipstatement
+    | type IDENT ASSIGN assignRHS       #varinit
+    | assignLHS ASSIGN assignRHS        #assignment
+    | READ assignLHS                    #readstatement
+    | FREE expr                         #freestatement
+    | RETURN expr                       #returnstatement
+    | EXIT expr                         #exitstatement
+    | PRINT expr                        #printstatement
+    | PRINTLN expr                      #printlnstatement
+    | IF expr THEN stat ELSE stat FI    #ifstatement
+    | WHILE expr DO stat DONE           #whilestatement
+    | BEGIN stat END                    #beginendstatement
+    | stat SEMI stat                    #statementblock
     ;
 
 assignLHS   : IDENT
