@@ -1,14 +1,17 @@
-# variable declaration missing variable name
+# negating biggest possible negative integer - should this runtime error?
 
 # Output:
-# #syntax_error#
+# -2147483648
+# #runtime_error#
 
 # Exit:
-# 100
-
+# 255 
 
 # Program:
 
 begin
-  int = 42
+  int x = -2147483648 ;
+  println x ;
+  x = -x; #err here?
+  println x 
 end
