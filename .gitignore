@@ -26,8 +26,8 @@
 *.s
 *.ast
 
-#ignore the WACC tempory test_files copy
-testing/test_files/
+#ignore WACC files
+*.wacc
 
 #ignore other junk files
 *.backup
