@@ -41,5 +41,6 @@ testing/test_files/
 #ignore folders
 bin/
 examples/
+src/antlr
 
 
