@@ -1,4 +1,6 @@
 import subprocess
+import argparse
+import sys
 
 ### Don't touch this ###
 try:
@@ -7,7 +9,18 @@ except ImportError:
     import os
     DEVNULL = open(os.devnull, 'wb')
 
-cnt = 0
+print "### Compiling ###\n"
+
+make_clean = subprocess.Popen(['make', 'clean']).communicate()
+make = subprocess.Popen(['make']).communicate()
+
+print "\n### Compile complete ###\n"
+
+run_mode = 0
+if len(sys.argv) == 1:
+    run_mode = 0
+else:
+    run_mode = int(sys.argv[1])
 
 def test_case(desired_error, file_name):
     global cnt
@@ -37,10 +50,13 @@ for root, dirs, files in os.walk('examples/valid'):
 
 cnt = 0
 total_valid = len(valid_file_list)
-print "### Running valid tests ###\n"
-for file in valid_file_list:
-    test_case(0, file)
-print "### Valid tests complete ###\n"
+
+if run_mode == 0 or run_mode == 1:
+    print "### Running valid tests ###\n"
+    for file in valid_file_list:
+        test_case(0, file)
+    print "### Valid tests complete ###\n"
+
 valid_cnt = cnt
 
 
@@ -54,10 +70,13 @@ for root, dirs, files in os.walk('examples/invalid/syntaxErr'):
 
 cnt = 0
 total_syntax = len(syntax_file_list)
-print "### Running syntax tests ###\n"
-for file in syntax_file_list:
-    test_case(100, file)
-print "### Syntax tests complete ###\n"
+
+if run_mode == 0 or run_mode == 2:
+    print "### Running syntax tests ###\n"
+    for file in syntax_file_list:
+        test_case(100, file)
+    print "### Syntax tests complete ###\n"
+
 syntax_cnt = cnt
 
 # SEMANTIC
@@ -70,10 +89,13 @@ for root, dirs, files in os.walk('examples/invalid/semanticErr'):
 
 cnt = 0
 total_semantic = len(semantic_file_list)
-print "### Running semantic tests ###\n"
-for file in semantic_file_list:
-    test_case(200, file)
-print "### Semantic tests complete ###\n"
+
+if run_mode == 0 or run_mode == 3:
+    print "### Running semantic tests ###\n"
+    for file in semantic_file_list:
+        test_case(200, file)
+    print "### Semantic tests complete ###\n"
+
 semantic_cnt = cnt
 
 print "Valid : ", valid_cnt, "/", total_valid
