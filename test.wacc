@@ -1,17 +1,11 @@
-# negating biggest possible negative integer - should this runtime error?
+# evaluating negation
 
 # Output:
-# -2147483648
-# #runtime_error#
-
-# Exit:
-# 255 
+# -42
 
 # Program:
 
 begin
-  int x = -2147483648 ;
-  println x ;
-  x = -x; #err here?
-  println x 
+    int x = 42 ;
+  println -x
 end
