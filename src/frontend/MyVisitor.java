@@ -12,7 +12,7 @@ public class MyVisitor extends WACCParserBaseVisitor<Void> {
         for (int i = 0; i < ctx.getChildCount(); i++) {
             System.out.println(ctx.getChild(i));
         }
-        return null;
+        return visitChildren(ctx);
     }
 
     public Void visitExpr(WACCParser.ExprContext ctx) {
@@ -36,6 +36,19 @@ public class MyVisitor extends WACCParserBaseVisitor<Void> {
         // // vist funtion return type (note this is out of normal tree order)
         // visitChildren(ctx.param);
         // System.out.println("");
+        return null;
+    }
+
+    // Visiting literals
+    public Void visitIntegerliteral(
+                    WACCParser.IntegerliteralContext ctx) {
+        try {
+            Integer value = Integer.parseInt(ctx.getChild(0)
+                            .getText());
+        } catch (NumberFormatException e) {
+            System.out.println("#syntax error#");
+            System.exit(100);
+        }
         return null;
     }
 }

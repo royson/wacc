@@ -37,10 +37,10 @@ public class Main {
         parser.addErrorListener(new WACCErrorListener());
         
         ParseTree tree = parser.program();
-//        System.out.println("====");
-//        MyVisitor visitor = new MyVisitor();
-//        visitor.visit(tree);
-//        System.out.println("====");
+        System.out.println("====");
+        MyVisitor visitor = new MyVisitor();
+        visitor.visit(tree);
+        System.out.println("====");
 
     }
 }

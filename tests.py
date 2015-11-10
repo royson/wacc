@@ -2,7 +2,13 @@ import subprocess
 import argparse
 import sys
 
-### Don't touch this ###
+# Usage instructions
+# ------------------
+# python tests.py 0 -- run everything
+# python tests.py 1 -- run valid cases
+# python tests.py 2 -- run syntax
+# python tests.py 3 -- run semantic
+
 try:
     from subprocess import DEVNULL # py3k
 except ImportError:
