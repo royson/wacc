@@ -32,7 +32,7 @@ public class Main {
         WACCParser parser = new WACCParser(tokenStream);
         
         // Removes the default error Listener
-        // parser.removeErrorListeners();
+        parser.removeErrorListeners();
         
         parser.addErrorListener(new WACCErrorListener());
         
