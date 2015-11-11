@@ -31,21 +31,23 @@ public class Main {
 
         // Removes the default error Listener
         parser.removeErrorListeners();
-//        parser.addErrorListener(new WACCErrorListener());
+        parser.addErrorListener(new WACCErrorListener());
+        
 
         ParseTree tree = parser.program();
         MyVisitor visitor = new MyVisitor();
         visitor.visit(tree);
 
         // Syntax error
-        int syntaxErrorCount = visitor.getSyntaxErrorCount();
+        int syntaxErrorCount = visitor.getSyntaxErrorCount() + parser.getNumberOfSyntaxErrors();
         if (syntaxErrorCount > 0) {
             System.err.println("Found " + syntaxErrorCount
                             + " syntax error(s)");
             System.out.println("#syntax error#");
             System.exit(100);
         }
-
+        
+        // Semantic error
         int semanticErrorCount = 0;
         if (semanticErrorCount > 0) {
             System.err.println("Found " + semanticErrorCount

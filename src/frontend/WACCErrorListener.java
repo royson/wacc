@@ -40,16 +40,16 @@ public class WACCErrorListener implements ANTLRErrorListener {
 
     @Override
     public void syntaxError(@NotNull Recognizer<?, ?> arg0,
-                    @Nullable Object arg1, int arg2, int arg3,
-                    @NotNull String arg4,
+                    @Nullable Object arg1, int line, int col,
+                    @NotNull String errorMessage,
                     @Nullable RecognitionException arg5) {
-        System.out.println("#syntax error#");
-//        System.out.println(arg0.toString());
-//        System.out.println(arg1.toString());
-//        System.out.println(arg2 + " " + arg3); // Position of the error
-//        System.out.println(arg4.toString()); // Some default error message
-//        System.out.println(arg5.toString()); // Type of exception
-        System.exit(100);
+        // System.out.println(arg0.toString());
+        // System.out.println(arg1.toString());
+        System.err.println("Syntactic error at " + line + ":" + col
+                        + " -- " + errorMessage);
+        // System.out.println(arg2 + " " + arg3); // Position of the error
+        // System.out.println(arg4.toString()); // Some default error message
+        // System.out.println(arg5.toString()); // Type of exception
     }
 
 }

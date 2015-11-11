@@ -11,6 +11,7 @@ public class MyVisitor extends WACCParserBaseVisitor<Void> {
     private boolean inFunction = false;
 
     private Void syntaxError() {
+        // Need to pass alot more information here to throw a proper error message
         syntaxErrorCount += 1;
         return null;
     }
