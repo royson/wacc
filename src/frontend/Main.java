@@ -1,8 +1,6 @@
 package frontend;
 
 import java.io.*;
-import java.util.List;
-
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.*;
 
@@ -30,17 +28,30 @@ public class Main {
 
         // Create a parser that reads form the tokens buffer
         WACCParser parser = new WACCParser(tokenStream);
-        
+
         // Removes the default error Listener
         parser.removeErrorListeners();
-        
-        parser.addErrorListener(new WACCErrorListener());
-        
+//        parser.addErrorListener(new WACCErrorListener());
+
         ParseTree tree = parser.program();
-        System.out.println("====");
         MyVisitor visitor = new MyVisitor();
         visitor.visit(tree);
-        System.out.println("====");
 
+        // Syntax error
+        int syntaxErrorCount = visitor.getSyntaxErrorCount();
+        if (syntaxErrorCount > 0) {
+            System.err.println("Found " + syntaxErrorCount
+                            + " syntax error(s)");
+            System.out.println("#syntax error#");
+            System.exit(100);
+        }
+
+        int semanticErrorCount = 0;
+        if (semanticErrorCount > 0) {
+            System.err.println("Found " + semanticErrorCount
+                            + " semantic errors(s)");
+            System.out.println("#semantic error#");
+            System.exit(200);
+        }
     }
 }

@@ -1,16 +1,17 @@
 package frontend;
 
-import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 
-import antlr.*;
-import antlr.WACCParser.ProgramContext;
+import antlr.WACCParser;
+import antlr.WACCParserBaseVisitor;
 
 public class MyVisitor extends WACCParserBaseVisitor<Void> {
 
+    private int syntaxErrorCount = 0;
+    private boolean inFunction = false;
+
     private Void syntaxError() {
-        System.out.println("#syntax error#");
-        System.exit(100);
+        syntaxErrorCount += 1;
         return null;
     }
 
@@ -41,7 +42,8 @@ public class MyVisitor extends WACCParserBaseVisitor<Void> {
 
     public Void visitFunc(WACCParser.FuncContext ctx) {
         System.out.println("I found a function definition!");
-        int childCount = ctx.getChildCount();
+        inFunction = true;
+//        int childCount = ctx.getChildCount();
         // for (int i = 0; i < childcount; i++) {
         // System.out.println(ctx.getChild(i));
         // }
@@ -49,6 +51,7 @@ public class MyVisitor extends WACCParserBaseVisitor<Void> {
         // Visit the statements
         int statementCount = ctx.stat().getChildCount();
         System.out.println(ctx.stat());
+        System.out.println("depth: " + ctx.depth());
         System.out.println(statementCount);
 
         if (statementCount == 2) {
@@ -66,7 +69,8 @@ public class MyVisitor extends WACCParserBaseVisitor<Void> {
                 }
             }
         }
-
+        
+        inFunction = false;
         return null;
     }
 
@@ -74,11 +78,16 @@ public class MyVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitIntegerliteral(
                     WACCParser.IntegerliteralContext ctx) {
         try {
+            @SuppressWarnings("unused")
             Integer value = Integer.parseInt(ctx.getChild(0)
                             .getText());
         } catch (NumberFormatException e) {
             syntaxError();
         }
         return null;
+    }
+
+    public int getSyntaxErrorCount() {
+        return syntaxErrorCount;
     }
 }
