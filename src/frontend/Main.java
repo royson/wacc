@@ -34,7 +34,7 @@ public class Main {
         parser.addErrorListener(new WACCErrorListener());
 
         ParseTree tree = parser.program();
-        MyVisitor visitor = new MyVisitor();
+        SemanticVisitor visitor = new SemanticVisitor();
         visitor.visit(tree);
 
         // -----------Syntax error-----------
@@ -42,22 +42,22 @@ public class Main {
         // (parser.getNumberOfSyntaxErrors())
         // +
         // errors found in exceptional cases (visitor.getSyntaxErrorCount())
-        int syntaxErrorCount = visitor.getSyntaxErrorCount()
-                        + parser.getNumberOfSyntaxErrors();
-        if (syntaxErrorCount > 0) {
-            System.err.println("Found " + syntaxErrorCount
-                            + " syntax error(s)");
-            System.out.println("#syntax error#");
-            System.exit(100);
-        }
+//        int syntaxErrorCount = visitor.getSyntaxErrorCount()
+//                        + parser.getNumberOfSyntaxErrors();
+//        if (syntaxErrorCount > 0) {
+//            System.err.println("Found " + syntaxErrorCount
+//                            + " syntax error(s)");
+//            System.out.println("#syntax error#");
+//            System.exit(100);
+//        }
 
         // -----------Semantic error-----------
-        int semanticErrorCount = 0;
-        if (semanticErrorCount > 0) {
-            System.err.println("Found " + semanticErrorCount
-                            + " semantic errors(s)");
-            System.out.println("#semantic error#");
-            System.exit(200);
-        }
+//        int semanticErrorCount = 0;
+//        if (semanticErrorCount > 0) {
+//            System.err.println("Found " + semanticErrorCount
+//                            + " semantic errors(s)");
+//            System.out.println("#semantic error#");
+//            System.exit(200);
+//        }
     }
 }

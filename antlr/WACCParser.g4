@@ -53,11 +53,11 @@ assignLHS   : IDENT
             | pairElem
             ;
 
-assignRHS   : expr
-            | arrayLiter
-            | NEWPAIR LPAREN expr COMMA expr RPAREN
-            | pairElem
-            | CALL IDENT LPAREN arg_list? RPAREN
+assignRHS   : expr                                  #assignrhsexpr
+            | arrayLiter                            #assignrhsarraylit
+            | NEWPAIR LPAREN expr COMMA expr RPAREN #assignrhsnewpair
+            | pairElem                              #assignrhspairelem
+            | CALL IDENT LPAREN arg_list? RPAREN    #assignrhscall
             ;
 
 arg_list: expr (COMMA expr)*;

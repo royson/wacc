@@ -1,37 +1,38 @@
 package frontend;
 
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import semantics.*;
 import antlr.WACCParser;
 import antlr.WACCParserBaseVisitor;
 
-public class MyVisitor extends WACCParserBaseVisitor<Void> {
+public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
     private SymbolTable<String, IDENTIFIER> top_st;
     // TODO: Preload initial symbol table with globally visible identifiers
 
     private SymbolTable<String, IDENTIFIER> current_st;
-    
 
-    private int syntaxErrorCount = 0;
     private boolean DEBUG = true;
 
-    private Void syntaxError() {
-        // TODO: (Print out the error messages. Refer to referred compiler for
-        // the messages)
-        syntaxErrorCount += 1;
+    private void semanticError(ParserRuleContext ctx,
+                    String errorMessage) {
+        Token startToken = ctx.getStart();
+        int line = startToken.getLine();
+        int pos = startToken.getCharPositionInLine();
 
-        return null;
+        System.err.println("Errors detected during compilation! Exit code 200 returned.");
+        System.err.println("Semantic Error at " + line + ":" + pos
+                        + " -- " + errorMessage);
+        System.exit(200);
     }
 
     private void contextDepth(ParserRuleContext ctx) {
-        System.out.println(ctx.depth());
-    }
-
-    public int getSyntaxErrorCount() {
-        return syntaxErrorCount;
+        System.out.println(ctx.depth() + " " + ctx.getChildCount()
+                        + " " + ctx);
     }
 
     /* Write functions to traverse tree below here */
@@ -43,6 +44,7 @@ public class MyVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Program ");
             contextDepth(ctx);
         }
+        current_st = new SymbolTable<String, IDENTIFIER>();
         return visitChildren(ctx);
     }
 
@@ -53,6 +55,18 @@ public class MyVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Variable init statement ");
             contextDepth(ctx);
         }
+        String type = ctx.type().toString();
+        ParseTree varnode = ctx.IDENT();
+        String varname = varnode.toString();
+
+        // Check for duplicate variable
+        IDENTIFIER object = current_st.lookup(varname);
+        if (object != null) {
+            semanticError(ctx, "\"" + varname
+                            + "\" is already defined in this scope");
+        }
+        current_st.add(varname, new VARIABLE(new TYPE(type)));
+
         return visitChildren(ctx);
     }
 
@@ -151,10 +165,42 @@ public class MyVisitor extends WACCParserBaseVisitor<Void> {
     }
 
     /* Assign LHS and assign RHS */
-
-    public Void visitAssignRHS(WACCParser.AssignRHSContext ctx) {
+    
+    public Void visitAssignrhsexpr(WACCParser.AssignrhsexprContext ctx) {
         if (DEBUG) {
-            System.out.print("-Assign RHS ");
+            System.out.print("-Assign RHS EXPR ");
+            contextDepth(ctx);
+        }
+        return visitChildren(ctx);
+    }
+    
+    public Void visitAssignrhsarraylit(WACCParser.AssignrhsarraylitContext ctx) {
+        if (DEBUG) {
+            System.out.print("-Assign RHS arraylit ");
+            contextDepth(ctx);
+        }
+        return visitChildren(ctx);
+    }
+    
+    public Void visitAssignrhsnewpair(WACCParser.AssignrhsnewpairContext ctx) {
+        if (DEBUG) {
+            System.out.print("-Assign RHS newpair ");
+            contextDepth(ctx);
+        }
+        return visitChildren(ctx);
+    }
+    
+    public Void visitAssignrhspairelem(WACCParser.AssignrhspairelemContext ctx) {
+        if (DEBUG) {
+            System.out.print("-Assign RHS pairelem ");
+            contextDepth(ctx);
+        }
+        return visitChildren(ctx);
+    }
+    
+    public Void visitAssignrhscall(WACCParser.AssignrhscallContext ctx) {
+        if (DEBUG) {
+            System.out.print("-Assign RHS call ");
             contextDepth(ctx);
         }
         return visitChildren(ctx);
@@ -186,28 +232,13 @@ public class MyVisitor extends WACCParserBaseVisitor<Void> {
     }
 
     /* Visit expressions */
-    // public Void visitExpr(WACCParser.ExprContext ctx) {
-    // if (DEBUG) {
-    // System.out.println("-Expression");
-    // contextDepth(ctx);
-    // }
-    // return visitChildren(ctx);
-    // }
-
     public Void visitIntegerliteral(
                     WACCParser.IntegerliteralContext ctx) {
         if (DEBUG) {
             System.out.print("-Int literal ");
             contextDepth(ctx);
         }
-        try {
-            @SuppressWarnings("unused")
-            Integer value = Integer.parseInt(ctx.getChild(0)
-                            .getText());
-        } catch (NumberFormatException e) {
-            syntaxError();
-        }
-        return null;
+        return visitChildren(ctx);
     }
 
     public Void visitBooleanliteral(
@@ -288,7 +319,7 @@ public class MyVisitor extends WACCParserBaseVisitor<Void> {
 
     public Void visitFunc(WACCParser.FuncContext ctx) {
         System.out.println("I found a function definition!");
-        // TODO
+        SymbolTable<String, IDENTIFIER> st = new SymbolTable<String, IDENTIFIER>();
 
         return null;
     }

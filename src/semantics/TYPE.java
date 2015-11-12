@@ -1,5 +1,9 @@
 package semantics;
 
-public class TYPE extends IDENTIFIER{
-  //TODO: Implement the types as Enums?
+public class TYPE extends IDENTIFIER {
+    private String type;
+
+    public TYPE(String type) {
+        this.type = type;
+    }
 }

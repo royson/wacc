@@ -1,12 +1,11 @@
 package semantics;
 
 public class ARRAY extends TYPE {
-  private TYPE elementType;
-  private int elements;
+    private int elements;
 
-  public ARRAY(TYPE elementType, int elements) {
-	this.elementType = elementType;
-	this.elements = elements;
-  }
+    public ARRAY(String elementType, int elements) {
+        super(elementType);
+        this.elements = elements;
+    }
 
 }
