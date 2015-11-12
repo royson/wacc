@@ -26,9 +26,6 @@
 *.s
 *.ast
 
-#ignore WACC files
-*.wacc
-
 #ignore other junk files
 *.backup
 *.kate-swp
@@ -37,10 +34,10 @@
 *.vrb
 *.nav
 *.toc
+*.DS_Store
 
 #ignore folders
 bin/
-examples/
 src/antlr/
 
 
