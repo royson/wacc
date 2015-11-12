@@ -46,17 +46,14 @@ PAIR            : 'pair';
 UNARYOP         : '!' | '-' | 'len' | 'ord' | 'chr';
 BINARYOP        : '*' | '/' | '%' | ' + ' | ' - ' | '>' | '>=' | '<' | '<=' | '==' | '!=' | '&&' | '||';
 
-// Identifier
-IDENT           : [_a-zA-Z][_a-zA-Z0-9]*;
+// Boolean literal
+BOOLEANLITERAL  : 'true' | 'false';
 
 // Int literal
 INTLITERAL      : INTSIGN? DIGIT+;
 fragment DIGIT  : ('0'..'9');
 fragment INTSIGN
                 : '+' | '-';
-
-// Boolean literal
-BOOLEANLITERAL  : 'true' | 'false';
 
 // Char literal
 CHARLITERAL     : '\''STRINGCHARACTER'\'';
@@ -88,3 +85,6 @@ COMMA           : ',';
 // Comments and whitespace
 WS              : [ \t\r\n\u000C]+ -> skip;
 LINE_COMMENT    : '#' ~[\r\n]* -> skip;
+
+// Identifier
+IDENT           : [_a-zA-Z][_a-zA-Z0-9]*;

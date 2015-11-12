@@ -13,30 +13,32 @@ import org.antlr.v4.runtime.misc.Nullable;
 
 public class WACCErrorListener implements ANTLRErrorListener {
 
-	@Override
-	public void reportAmbiguity(@NotNull Parser arg0, @NotNull DFA arg1,
-			int arg2, int arg3, boolean arg4, @Nullable BitSet arg5,
-			@NotNull ATNConfigSet arg6) {
-	}
+    @Override
+    public void reportAmbiguity(@NotNull Parser arg0,
+                    @NotNull DFA arg1, int arg2, int arg3,
+                    boolean arg4, @Nullable BitSet arg5,
+                    @NotNull ATNConfigSet arg6) {
+    }
 
-	@Override
-	public void reportAttemptingFullContext(@NotNull Parser arg0,
-			@NotNull DFA arg1, int arg2, int arg3, @Nullable BitSet arg4,
-			@NotNull ATNConfigSet arg5) {
-	}
+    @Override
+    public void reportAttemptingFullContext(@NotNull Parser arg0,
+                    @NotNull DFA arg1, int arg2, int arg3,
+                    @Nullable BitSet arg4, @NotNull ATNConfigSet arg5) {
+    }
 
-	@Override
-	public void reportContextSensitivity(@NotNull Parser arg0,
-			@NotNull DFA arg1, int arg2, int arg3, int arg4,
-			@NotNull ATNConfigSet arg5) {
-	}
+    @Override
+    public void reportContextSensitivity(@NotNull Parser arg0,
+                    @NotNull DFA arg1, int arg2, int arg3, int arg4,
+                    @NotNull ATNConfigSet arg5) {
+    }
 
-	@Override
-	public void syntaxError(@NotNull Recognizer<?, ?> arg0,
-			@Nullable Object arg1, int line, int col,
-			@NotNull String errorMessage, @Nullable RecognitionException arg5) {
-		System.err.println("Syntactic error at " + line + ":" + col + " -- "
-				+ errorMessage);
-	}
+    @Override
+    public void syntaxError(@NotNull Recognizer<?, ?> arg0,
+                    @Nullable Object arg1, int line, int col,
+                    @NotNull String errorMessage,
+                    @Nullable RecognitionException arg5) {
+        System.err.println("Syntactic error at " + line + ":" + col
+                        + " -- " + errorMessage);
+    }
 
 }
