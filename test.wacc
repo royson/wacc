@@ -1,4 +1,4 @@
-# assignment to undeclared variable
+# attempt to read into a boolan variable
 
 # Output:
 # #semantic_error#
@@ -9,6 +9,5 @@
 # Program:
 
 begin
-  int x = 10 ;
-  x = x + y
+  string b = 3
 end
