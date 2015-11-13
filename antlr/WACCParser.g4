@@ -4,8 +4,6 @@ options {
   tokenVocab=WACCLexer;
 }
 
-// Need to resolve the left recursive rule problem
-// type            : BASETYPE | arraytype | pairtype;
 type              : BASETYPE (LBRACK RBRACK)* | pairtype (LBRACK RBRACK)*;
 arraytype         : type LBRACK RBRACK;
 pairtype          : PAIR LPAREN pairelementype COMMA pairelementype RPAREN;
@@ -28,8 +26,8 @@ arrayElem : IDENT (LBRACK expr RBRACK)+;
 program: (BEGIN (func)* (stat) END)? EOF;
 
 func: type IDENT LPAREN param_list? RPAREN IS funcStat END;
-
-funcStat: (stat SEMI)* (RETURN expr | EXIT expr | IF expr THEN funcStat ELSE funcStat FI);
+funcStat: (stat SEMI)* 
+(RETURN expr | EXIT expr | IF expr THEN funcStat ELSE funcStat FI);
 
 param_list: param (COMMA param)*;
 

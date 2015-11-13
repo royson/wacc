@@ -34,7 +34,7 @@ public class Main {
 		parser.addErrorListener(new WACCErrorListener());
 
 		ParseTree tree = parser.program();
-		MyVisitor visitor = new MyVisitor();
+		SyntaxVisitor visitor = new SyntaxVisitor();
 		visitor.visit(tree);
 
 		// -----------Syntax error-----------

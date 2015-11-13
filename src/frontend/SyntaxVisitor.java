@@ -2,9 +2,8 @@ package frontend;
 
 import antlr.WACCParser;
 import antlr.WACCParserBaseVisitor;
-import org.antlr.v4.runtime.RecognitionException;
 
-public class MyVisitor extends WACCParserBaseVisitor<Void> {
+public class SyntaxVisitor extends WACCParserBaseVisitor<Void> {
 
     private int syntaxErrorCount = 0;
 
