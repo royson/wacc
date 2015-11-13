@@ -2,51 +2,46 @@ package frontend;
 
 import antlr.WACCParser;
 import antlr.WACCParserBaseVisitor;
+import org.antlr.v4.runtime.RecognitionException;
 
 public class MyVisitor extends WACCParserBaseVisitor<Void> {
 
-	private int syntaxErrorCount = 0;
+    private int syntaxErrorCount = 0;
 
-	private Void syntaxError() {
-		// TODO: (Print out the error messages. Refer to referred compiler for
-		// the messages)
-		syntaxErrorCount += 1;
+    public Void visitProgram(WACCParser.ProgramContext ctx) {
+        visitChildren(ctx);
+        return null;
+    }
 
-		return null;
-	}
+    public Void visitExpr(WACCParser.ExprContext ctx) {
+        return null;
+    }
 
-	public Void visitProgram(WACCParser.ProgramContext ctx) {
-		return visitChildren(ctx);
-	}
+    public Void visitStat(WACCParser.StatContext ctx) {
+        // System.out.println("-Statement");
+        return super.visitChildren(ctx);
+    }
 
-	public Void visitExpr(WACCParser.ExprContext ctx) {
-		return null;
-	}
+    public Void visitFunc(WACCParser.FuncContext ctx) {
+        return null;
+    }
 
-	public Void visitStat(WACCParser.StatContext ctx) {
-		// System.out.println("-Statement");
-		return visitChildren(ctx);
-	}
+    // Visiting literals
+    public Void visitIntegerliteral(WACCParser.IntegerliteralContext ctx) {
+        try {
+            @SuppressWarnings("unused")
+            Integer value = Integer.parseInt(ctx.getChild(0).getText());
+        } catch (NumberFormatException e) {
+            System.err.println("Integer value " + ctx.getStart().getText()
+                    + " on line " + ctx.getStart().getLine() + " is too large "
+                    + "for a 32-bit signed integer");
+	    syntaxErrorCount++;
+        }
+        return null;
+    }
 
-	public Void visitFunc(WACCParser.FuncContext ctx) {
-		System.out.println("I found a function definition!");
-		// TODO
-
-		return null;
-	}
-
-	// Visiting literals
-	public Void visitIntegerliteral(WACCParser.IntegerliteralContext ctx) {
-		try {
-			@SuppressWarnings("unused")
-			Integer value = Integer.parseInt(ctx.getChild(0).getText());
-		} catch (NumberFormatException e) {
-			syntaxError();
-		}
-		return null;
-	}
-
-	public int getSyntaxErrorCount() {
-		return syntaxErrorCount;
-	}
+    public int getSyntaxErrorCount() {
+        return syntaxErrorCount;
+    }
 }
+
