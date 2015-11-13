@@ -106,18 +106,26 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 	  System.out.print("-Variable init statement ");
 	  contextDepth(ctx);
 	}
-	ParseTree varnode = ctx.IDENT();
-	stack.push(varnode.toString());
+
+	String varName = ctx.IDENT().toString();
 
 	// Check for duplicate variable
-	IDENTIFIER object = currentST.lookup(stack.peek());
+	IDENTIFIER object = currentST.lookup(varName);
 	if (object != null) {
-	  semanticError(ctx, "\"" + stack.peek()
+	  semanticError(ctx, "\"" + varName
 		  + "\" is already defined in this scope");
 	}
-
+	stack.push(varName);
 	visit(ctx.type());
+	printStack();
+	
+	String varType = stack.peek();
+	//TODO: Fix with array arrives.
+	if(!varType.startsWith("Pair")){
+	  currentST.add(ctx.IDENT().toString(), new VARIABLE(stack.peek()));
+	}
 	visit(ctx.assignRHS());
+	printStack();
 
 	return null;
   }
@@ -143,7 +151,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
 	// Only char and integers are allowed.
 	System.out.println("READ TYPE IS : " + readType);
-	if (readType != "INT" || readType != "CHAR") {
+	if (!readType.equals("INT") || !readType.equals("CHAR")) {
 	  semanticError(ctx, "Incompatible type " + readType);
 	}
 	return null;
@@ -170,7 +178,20 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 	  System.out.println("-Return statement");
 	  contextDepth(ctx);
 	}
-	return visitChildren(ctx);
+	String functionName = stack.pop();
+	FUNCTION curFunc = (FUNCTION) currentST.lookupAll(functionName);
+
+	visit(ctx.expr());
+	
+	String type = stack.pop();
+	String varname = stack.pop();
+	
+	if (!curFunc.getType().equals(type)) {
+	  stack.push(curFunc.getType());
+	  checkType(ctx, varname, type);
+	}
+
+	return null;
   }
 
   public Void visitExitstatement(WACCParser.ExitstatementContext ctx) {
@@ -339,14 +360,9 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 	  System.out.print("-Type BASETYPE ");
 	  contextDepth(ctx);
 	}
-	String curVarName = stack.pop();
 	String curType = renameStringToCharArray(ctx.BASETYPE()
 		.toString().toUpperCase());
 	stack.push(curType);
-
-	System.out.println("Type assigned: " + stack.peek());
-	currentST.add(curVarName, new VARIABLE(stack.peek()));
-
 	return null;
   }
 
@@ -371,6 +387,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 	  System.out.print("-Pairtype ");
 	  contextDepth(ctx);
 	}
+
 	String curVarName = stack.pop();
 	visit(ctx.pairelementype(0));
 	visit(ctx.pairelementype(1));
@@ -521,9 +538,71 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
   /* Visit function */
 
+  public Void visitParam_list(WACCParser.Param_listContext ctx) {
+	if (DEBUG) {
+	  System.out.print("-Param_list ");
+	  contextDepth(ctx);
+	}
+	String functionName = stack.peek();
+	FUNCTION curFunc = (FUNCTION) currentST.lookupAll(functionName);
+
+	System.out.println("CHILDREN COUNT: " + ctx.param().size());
+	curFunc.paramSize(ctx.param().size());
+	return visitChildren(ctx);
+  }
+
+  public Void visitParam(WACCParser.ParamContext ctx) {
+	if (DEBUG) {
+	  System.out.print("-Param ");
+	  contextDepth(ctx);
+	}
+	String functionName = stack.peek();
+	FUNCTION curFunc = (FUNCTION) currentST.lookupAll(functionName);
+
+	String paramName = ctx.IDENT().toString();
+	stack.push(paramName);
+	visit(ctx.type());
+	String paramReturnType = stack.pop();
+
+	PARAM newParam = new PARAM(paramReturnType);
+	currentST.add(paramName, newParam);
+	curFunc.addParam(newParam);
+
+	return null;
+  }
+
   public Void visitFunc(WACCParser.FuncContext ctx) {
-	System.out.println("I found a function definition!");
-	SymbolTable<String, IDENTIFIER> st = new SymbolTable<String, IDENTIFIER>();
+	if (DEBUG) {
+	  System.out.print("-Function: " + ctx.IDENT().toString());
+	  contextDepth(ctx);
+	}
+	// TODO
+	// Check for duplicate function
+	String functionName = ctx.IDENT().toString();
+	IDENTIFIER object = currentST.lookupAll(functionName);
+	if (object != null) {
+	  semanticError(ctx, "\"" + functionName
+		  + "\" is already defined in this scope");
+	}
+
+	stack.push(functionName);
+	// Check for function type
+	visit(ctx.type());
+	String functionReturnType = stack.pop();
+	currentST.add(functionName, new FUNCTION(functionReturnType));
+
+	SymbolTable<String, IDENTIFIER> st = new SymbolTable<String, IDENTIFIER>(
+		currentST);
+	currentST = st;
+
+	// Grabs the params and store it in the function object
+	if (ctx.param_list() != null) {
+	  visit(ctx.param_list());
+	}
+
+	visit(ctx.stat());
+
+	currentST = st.getEncSymTable();
 
 	return null;
   }
