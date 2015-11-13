@@ -26,7 +26,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
     /* Helper functions */
 
-    private void printTypeStack() {
+    private void printStack() {
         System.out.println("-----PRINTING STACK-----");
         System.out.println(Arrays.toString(stack.toArray()));
         System.out.println("------------------------");
@@ -63,8 +63,8 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         if (!compareType.equals(type)) {
             String errorMessage = "Incompatible type at " + value;
             errorMessage += " (expected: "
-                            + compareType.toUpperCase();
-            errorMessage += ", actual: " + type.toUpperCase() + ")";
+                            + compareType;
+            errorMessage += ", actual: " + type + ")";
             semanticError(ctx, errorMessage);
         }
     }
@@ -131,7 +131,15 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Read statement");
             contextDepth(ctx);
         }
-        return visitChildren(ctx);
+        visit(ctx.assignLHS());
+        String readType = stack.pop();
+        if (!(readType.equals("INT") || readType.equals("CHAR")
+                        || readType.equals("STRING") || readType.equals("BOOL"))) {
+            String errorMessage = "Incompatible type "
+                            + readType;
+            semanticError(ctx, errorMessage);
+        }
+        return null;
     }
 
     public Void visitFreeStatement(WACCParser.FreestatementContext ctx) {
@@ -248,10 +256,8 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Assign RHS newpair ");
             contextDepth(ctx);
         }
-        printTypeStack();
         visit(ctx.expr(0)); // Visit fst
         visit(ctx.expr(1)); // Visit snd
-        printTypeStack();
 
         String sndType = stack.pop();
         String sndVarname = stack.pop();
@@ -317,7 +323,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Type BASETYPE ");
             contextDepth(ctx);
         }
-        stack.push(ctx.BASETYPE().toString());
+        stack.push(ctx.BASETYPE().toString().toUpperCase());
 
         System.out.println("Type assigned: " + stack.peek());
         currentST.add(curVarName, new VARIABLE(stack.peek()));
@@ -365,7 +371,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Pairelementype basetype ");
             contextDepth(ctx);
         }
-        stack.push(ctx.BASETYPE().toString());
+        stack.push(ctx.BASETYPE().toString().toUpperCase());
         return null;
     }
 
@@ -401,7 +407,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             contextDepth(ctx);
         }
         stack.push(ctx.INTLITERAL().toString());
-        stack.push("int");
+        stack.push("INT");
         return null;
     }
 
@@ -412,7 +418,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             contextDepth(ctx);
         }
         stack.push(ctx.BOOLEANLITERAL().toString());
-        stack.push("bool");
+        stack.push("BOOL");
         return null;
     }
 
@@ -422,7 +428,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             contextDepth(ctx);
         }
         stack.push(ctx.CHARLITERAL().toString());
-        stack.push("char");
+        stack.push("CHAR");
         return null;
     }
 
@@ -432,7 +438,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             contextDepth(ctx);
         }
         stack.push(ctx.STRINGLITERAL().toString());
-        stack.push("string");
+        stack.push("STRING");
         return null;
     }
 

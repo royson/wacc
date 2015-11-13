@@ -5,13 +5,13 @@ public class PAIR extends IDENTIFIER {
     private String sndType;
 
     public PAIR(String fstType, String sndType) {
-        super("pair");
+        super("Pair("+fstType+","+sndType+")");
         this.fstType = fstType;
         this.sndType = sndType;
     }
 
     public String toString() {
-        return "pair(" + fstType + "," + sndType + ")";
+        return "Pair(" + fstType + "," + sndType + ")";
     }
 
 }
