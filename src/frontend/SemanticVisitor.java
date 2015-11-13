@@ -196,9 +196,9 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         SymbolTable<String, IDENTIFIER> st = new SymbolTable<String, IDENTIFIER>(
                         currentST);
         currentST = st;
-        
+
         visit(ctx.stat());
-        
+
         currentST = st.getEncSymTable();
         return null;
     }
@@ -312,7 +312,11 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Int literal ");
             contextDepth(ctx);
         }
-        checkType(ctx, ctx.INTLITERAL().toString(), "int");
+        if (curTypeToCheck != "") {
+            checkType(ctx, ctx.INTLITERAL().toString(), "int");
+        } else {
+            curTypeToCheck = "int";
+        }
         return null;
     }
 
@@ -322,7 +326,11 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Boolean literal ");
             contextDepth(ctx);
         }
-        checkType(ctx, ctx.BOOLEANLITERAL().toString(), "bool");
+        if (curTypeToCheck != "") {
+            checkType(ctx, ctx.BOOLEANLITERAL().toString(), "bool");
+        } else {
+            curTypeToCheck = "bool";
+        }
         return null;
     }
 
@@ -331,7 +339,11 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Char literal ");
             contextDepth(ctx);
         }
-        checkType(ctx, ctx.CHARLITERAL().toString(), "char");
+        if (curTypeToCheck != "") {
+            checkType(ctx, ctx.CHARLITERAL().toString(), "char");
+        } else {
+            curTypeToCheck = "char";
+        }
         return null;
     }
 
@@ -340,7 +352,11 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-String literal ");
             contextDepth(ctx);
         }
-        checkType(ctx, ctx.STRINGLITERAL().toString(), "string");
+        if (curTypeToCheck != "") {
+            checkType(ctx, ctx.STRINGLITERAL().toString(), "string");
+        } else {
+            curTypeToCheck = "string";
+        }
         return null;
     }
 
@@ -384,7 +400,21 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Binary operator ");
             contextDepth(ctx);
         }
-        return visitChildren(ctx);
+        // Visit LHS
+        visit(ctx.expr(0));
+        if (curIdentToCheck != "") {
+            curTypeToCheck = currentST.lookupAll(curIdentToCheck)
+                            .getType();
+        }
+
+        // Visit RHS
+        visit(ctx.expr(1));
+        if (curIdentToCheck != "") {
+            String rhsType = currentST.lookupAll(curIdentToCheck).getType();
+            checkType(ctx.expr(1), curIdentToCheck, rhsType);
+        }
+
+        return null;
     }
 
     public Void visitBrackets(WACCParser.BracketsContext ctx) {

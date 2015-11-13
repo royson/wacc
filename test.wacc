@@ -1,4 +1,4 @@
-# assignment to variable not declared in current scope
+# type mismatch: int <- char
 
 # Output:
 # #semantic_error#
@@ -9,8 +9,7 @@
 # Program:
 
 begin
-  begin 
-  int x = 5
-  end ;
-  x = 10
+  int x = 4 ;
+  char y = 'a' ;
+  println x + y
 end
