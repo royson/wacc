@@ -1,9 +1,9 @@
 package semantics;
 
 public class PARAM extends IDENTIFIER {
-  private TYPE type;
+  private String type;
 
-  public PARAM(TYPE type) {
-	this.type = type;
+  public PARAM(String type) {
+	super(type);
   }
 }

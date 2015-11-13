@@ -25,7 +25,7 @@ expr: INTLITERAL            #integerliteral
 
 arrayElem : IDENT (LBRACK expr RBRACK)+;
 
-program: (BEGIN (func)* (stat) END)? EOF;
+program: (BEGIN (func)* (stat) END)* EOF;
 
 func: type IDENT LPAREN param_list? RPAREN IS stat END;
 
@@ -48,9 +48,9 @@ stat: SKIP                              #skipstatement
     | stat SEMI stat                    #statementblock
     ;
 
-assignLHS   : IDENT
-            | arrayElem
-            | pairElem
+assignLHS   : IDENT		#assignlhsident
+            | arrayElem		#assignlhsarrayelem		
+            | pairElem		#assignlhspairelem
             ;
 
 assignRHS   : expr                                  #assignrhsexpr

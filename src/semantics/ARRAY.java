@@ -1,6 +1,6 @@
 package semantics;
 
-public class ARRAY extends TYPE {
+public class ARRAY extends IDENTIFIER {
     private int elements;
 
     public ARRAY(String elementType, int elements) {

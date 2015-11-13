@@ -1,4 +1,4 @@
-# type mismatch: int <- bool
+# assignment to variable not declared in current scope
 
 # Output:
 # #semantic_error#
@@ -9,5 +9,8 @@
 # Program:
 
 begin
-  int i = true
+  begin 
+  int x = 5
+  end ;
+  x = 10
 end

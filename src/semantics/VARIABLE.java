@@ -1,9 +1,9 @@
 package semantics;
 
 public class VARIABLE extends IDENTIFIER {
-  private TYPE type;
+  private String type;
 
-  public VARIABLE(TYPE type) {
-	this.type = type;
+  public VARIABLE(String type) {
+	super(type);
   }
 }
