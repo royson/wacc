@@ -17,7 +17,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     // TODO: Preload initial symbol table with globally visible identifiers
 
     private SymbolTable<String, IDENTIFIER> currentST;
-    private String curTypeToCheck = "";
+    private Stack<String> typeStack = new Stack<String>();
     private String curIdentToCheck = "";
 
     private boolean DEBUG = true;
@@ -43,23 +43,24 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
     private void checkType(ParserRuleContext ctx, String value,
                     String type) {
-        if (curTypeToCheck.equals("")) {
+        if (typeStack.isEmpty()) {
             if (DEBUG) {
                 System.out.println("Something ridiculous that we will know");
             }
             return;
         }
+        
+        String compareType = typeStack.pop();
 
-        if (!curTypeToCheck.equals(type)) {
+        if (!compareType.equals(type)) {
             String errorMessage = "Incompatible type at " + value;
             errorMessage += " (expected: "
-                            + curTypeToCheck.toUpperCase();
+                            + compareType.toUpperCase();
             errorMessage += ", actual: " + type.toUpperCase() + ")";
             semanticError(ctx, errorMessage);
         }
 
         // Reset the current type
-        curTypeToCheck = "";
     }
 
     private String checkDefinedVariable(ParserRuleContext ctx) {
@@ -105,8 +106,8 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
                             + "\" is already defined in this scope");
         }
         
-        System.out.println("Type assigned: " + curTypeToCheck);
-        currentST.add(varname, new VARIABLE(curTypeToCheck));
+        System.out.println("Type assigned: " + typeStack.peek());
+        currentST.add(varname, new VARIABLE(typeStack.peek()));
 
         visit(ctx.assignRHS());
 
@@ -267,7 +268,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             contextDepth(ctx);
         }
         curIdentToCheck = ctx.IDENT().toString();
-        curTypeToCheck = checkDefinedVariable(ctx);
+        typeStack.push(checkDefinedVariable(ctx));
         return null;
     }
 
@@ -296,7 +297,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Type BASETYPE ");
             contextDepth(ctx);
         }
-        curTypeToCheck = ctx.BASETYPE().toString();
+        typeStack.push(ctx.BASETYPE().toString());
         return null;
     }
     
@@ -365,10 +366,10 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Int literal ");
             contextDepth(ctx);
         }
-        if (curTypeToCheck != "") {
+        if (!typeStack.empty()) {
             checkType(ctx, ctx.INTLITERAL().toString(), "int");
         } else {
-            curTypeToCheck = "int";
+            typeStack.push("int");
         }
         return null;
     }
@@ -379,10 +380,10 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Boolean literal ");
             contextDepth(ctx);
         }
-        if (curTypeToCheck != "") {
+        if (!typeStack.empty()) {
             checkType(ctx, ctx.BOOLEANLITERAL().toString(), "bool");
         } else {
-            curTypeToCheck = "bool";
+            typeStack.push("bool");
         }
         return null;
     }
@@ -392,10 +393,10 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Char literal ");
             contextDepth(ctx);
         }
-        if (curTypeToCheck != "") {
+        if (!typeStack.empty()) {
             checkType(ctx, ctx.CHARLITERAL().toString(), "char");
         } else {
-            curTypeToCheck = "char";
+            typeStack.push("char");
         }
         return null;
     }
@@ -405,10 +406,10 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-String literal ");
             contextDepth(ctx);
         }
-        if (curTypeToCheck != "") {
+        if (!typeStack.empty()) {
             checkType(ctx, ctx.STRINGLITERAL().toString(), "string");
         } else {
-            curTypeToCheck = "string";
+            typeStack.push("string");
         }
         return null;
     }
@@ -456,8 +457,8 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         // Visit LHS
         visit(ctx.expr(0));
         if (curIdentToCheck != "") {
-            curTypeToCheck = currentST.lookupAll(curIdentToCheck)
-                            .getType();
+            typeStack.push(currentST.lookupAll(curIdentToCheck)
+                            .getType());
         }
 
         // Visit RHS
