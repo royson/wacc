@@ -136,8 +136,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         visit(ctx.assignLHS());
         String readType = stack.pop();
         if (!(Arrays.asList(primitiveTypes).contains(readType))) {
-            String errorMessage = "Incompatible type " + readType;
-            semanticError(ctx, errorMessage);
+            semanticError(ctx, "Incompatible type " + readType);
         }
         return null;
     }
@@ -189,7 +188,11 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Print line statement");
             contextDepth(ctx);
         }
-        return visitChildren(ctx);
+        //TODO: Cover println case
+        visit(ctx.expr());
+        stack.pop();
+        stack.pop();
+        return null;
     }
 
     public Void visitIfstatement(WACCParser.IfstatementContext ctx) {
@@ -466,7 +469,8 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             contextDepth(ctx);
         }
         curIdentToCheck = ctx.IDENT().toString();
-        checkDefinedVariable(ctx);
+        stack.push(curIdentToCheck);
+        stack.push(checkDefinedVariable(ctx));
         return null;
     }
 
