@@ -15,24 +15,26 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     // TODO: Preload initial symbol table with globally visible identifiers
 
     private SymbolTable<String, IDENTIFIER> current_st;
+    private String currentTypeToBeChecked = "";
 
     private boolean DEBUG = true;
 
     private void semanticError(ParserRuleContext ctx,
-                    String errorMessage) {
+            String errorMessage) {
         Token startToken = ctx.getStart();
         int line = startToken.getLine();
         int pos = startToken.getCharPositionInLine();
 
-        System.err.println("Errors detected during compilation! Exit code 200 returned.");
+        System.err
+                .println("Errors detected during compilation! Exit code 200 returned.");
         System.err.println("Semantic Error at " + line + ":" + pos
-                        + " -- " + errorMessage);
+                + " -- " + errorMessage);
         System.exit(200);
     }
 
     private void contextDepth(ParserRuleContext ctx) {
         System.out.println(ctx.depth() + " " + ctx.getChildCount()
-                        + " " + ctx);
+                + " " + ctx);
     }
 
     /* Write functions to traverse tree below here */
@@ -55,7 +57,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Variable init statement ");
             contextDepth(ctx);
         }
-        String type = ctx.type().toString();
+        visit(ctx.type());
         ParseTree varnode = ctx.IDENT();
         String varname = varnode.toString();
 
@@ -63,11 +65,14 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         IDENTIFIER object = current_st.lookup(varname);
         if (object != null) {
             semanticError(ctx, "\"" + varname
-                            + "\" is already defined in this scope");
+                    + "\" is already defined in this scope");
         }
-        current_st.add(varname, new VARIABLE(new TYPE(type)));
 
-        return visitChildren(ctx);
+        current_st.add(varname, new VARIABLE(new TYPE(currentTypeToBeChecked)));
+        
+        visit(ctx.assignRHS());
+
+        return null;
     }
 
     public Void visitAssignment(WACCParser.AssignmentContext ctx) {
@@ -95,7 +100,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     }
 
     public Void visitReturnStatement(
-                    WACCParser.ReturnstatementContext ctx) {
+            WACCParser.ReturnstatementContext ctx) {
         if (DEBUG) {
             System.out.println("-Return statement");
             contextDepth(ctx);
@@ -112,7 +117,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     }
 
     public Void visitPrintStatement(
-                    WACCParser.PrintstatementContext ctx) {
+            WACCParser.PrintstatementContext ctx) {
         if (DEBUG) {
             System.out.println("-Print statement");
             contextDepth(ctx);
@@ -121,7 +126,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     }
 
     public Void visitPrintlnstatement(
-                    WACCParser.PrintlnstatementContext ctx) {
+            WACCParser.PrintlnstatementContext ctx) {
         if (DEBUG) {
             System.out.println("-Print line statement");
             contextDepth(ctx);
@@ -138,7 +143,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     }
 
     public Void visitWhilestatement(
-                    WACCParser.WhilestatementContext ctx) {
+            WACCParser.WhilestatementContext ctx) {
         if (DEBUG) {
             System.out.println("-While statement");
             contextDepth(ctx);
@@ -147,7 +152,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     }
 
     public Void visitBeginendstatement(
-                    WACCParser.BeginendstatementContext ctx) {
+            WACCParser.BeginendstatementContext ctx) {
         if (DEBUG) {
             System.out.println("-Begin end statement");
             contextDepth(ctx);
@@ -156,7 +161,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     }
 
     public Void visitStatementblock(
-                    WACCParser.StatementblockContext ctx) {
+            WACCParser.StatementblockContext ctx) {
         if (DEBUG) {
             System.out.println("-Statement block statement");
             contextDepth(ctx);
@@ -165,7 +170,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     }
 
     /* Assign LHS and assign RHS */
-    
+
     public Void visitAssignrhsexpr(WACCParser.AssignrhsexprContext ctx) {
         if (DEBUG) {
             System.out.print("-Assign RHS EXPR ");
@@ -173,31 +178,34 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         }
         return visitChildren(ctx);
     }
-    
-    public Void visitAssignrhsarraylit(WACCParser.AssignrhsarraylitContext ctx) {
+
+    public Void visitAssignrhsarraylit(
+            WACCParser.AssignrhsarraylitContext ctx) {
         if (DEBUG) {
             System.out.print("-Assign RHS arraylit ");
             contextDepth(ctx);
         }
         return visitChildren(ctx);
     }
-    
-    public Void visitAssignrhsnewpair(WACCParser.AssignrhsnewpairContext ctx) {
+
+    public Void visitAssignrhsnewpair(
+            WACCParser.AssignrhsnewpairContext ctx) {
         if (DEBUG) {
             System.out.print("-Assign RHS newpair ");
             contextDepth(ctx);
         }
         return visitChildren(ctx);
     }
-    
-    public Void visitAssignrhspairelem(WACCParser.AssignrhspairelemContext ctx) {
+
+    public Void visitAssignrhspairelem(
+            WACCParser.AssignrhspairelemContext ctx) {
         if (DEBUG) {
             System.out.print("-Assign RHS pairelem ");
             contextDepth(ctx);
         }
         return visitChildren(ctx);
     }
-    
+
     public Void visitAssignrhscall(WACCParser.AssignrhscallContext ctx) {
         if (DEBUG) {
             System.out.print("-Assign RHS call ");
@@ -221,33 +229,59 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Type ");
             contextDepth(ctx);
         }
-        return visitChildren(ctx);
+        currentTypeToBeChecked = ctx.BASETYPE().toString();
+        
+        return null;
     }
 
     public Void visitTerminal(TerminalNode node) {
         if (DEBUG) {
-            System.out.println(node.toString());
+            System.out.println("-Terminal " + node.toString());
         }
         return null;
     }
 
     /* Visit expressions */
+    private void checkType(ParserRuleContext ctx, String value,
+            String type) {
+        if (currentTypeToBeChecked.equals("")) {
+            if (DEBUG) {
+                System.out
+                        .println("Something ridiculous that we will know");
+            }
+            return;
+        }
+
+        if (!currentTypeToBeChecked.equals(type)) {
+            String errorMessage = "Incompatible type at " + value;
+            errorMessage += " (expected: "
+                    + currentTypeToBeChecked.toUpperCase();
+            errorMessage += ", actual: " + type.toUpperCase() + ")";
+            semanticError(ctx, errorMessage);
+        } else {
+            // Reset the current type
+            currentTypeToBeChecked = "";
+        }
+    }
+
     public Void visitIntegerliteral(
-                    WACCParser.IntegerliteralContext ctx) {
+            WACCParser.IntegerliteralContext ctx) {
         if (DEBUG) {
             System.out.print("-Int literal ");
             contextDepth(ctx);
         }
+        checkType(ctx, ctx.INTLITERAL().toString(), "int");
         return visitChildren(ctx);
     }
 
     public Void visitBooleanliteral(
-                    WACCParser.BooleanliteralContext ctx) {
+            WACCParser.BooleanliteralContext ctx) {
         if (DEBUG) {
             System.out.print("-Boolean literal ");
             contextDepth(ctx);
         }
-        return visitChildren(ctx);
+        checkType(ctx, ctx.BOOLEANLITERAL().toString(), "bool");
+        return null;
     }
 
     public Void visitCharliteral(WACCParser.CharliteralContext ctx) {
@@ -299,7 +333,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     }
 
     public Void visitBinaryoperator(
-                    WACCParser.BinaryoperatorContext ctx) {
+            WACCParser.BinaryoperatorContext ctx) {
         if (DEBUG) {
             System.out.print("-Binary operator ");
             contextDepth(ctx);
