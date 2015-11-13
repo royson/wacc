@@ -36,4 +36,8 @@ public class SymbolTable<V, O> {
         }
         return null;
     }
+
+    public SymbolTable<V, O> getEncSymTable() {
+        return encSymTable;
+    }
 }
