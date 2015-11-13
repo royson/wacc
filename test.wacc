@@ -1,4 +1,4 @@
-# call free on a non-pair type 
+# assignment to undeclared variable
 
 # Output:
 # #semantic_error#
@@ -9,8 +9,6 @@
 # Program:
 
 begin
-  int x = 5;
-  println x;
-  free x; 
-  println x
+  int x = 10 ;
+  x = x + y
 end

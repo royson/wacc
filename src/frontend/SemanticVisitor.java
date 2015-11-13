@@ -20,7 +20,6 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
     private SymbolTable<String, IDENTIFIER> currentST;
     private Stack<String> stack = new Stack<String>();
-    private String curIdentToCheck = "";
     private String curVarName = "";
     private String[] primitiveTypes = { "INT", "BOOL", "CHAR",
                     "STRING" };
@@ -72,6 +71,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     }
 
     private String checkDefinedVariable(ParserRuleContext ctx) {
+        String curIdentToCheck = stack.peek();
         IDENTIFIER object = currentST.lookupAll(curIdentToCheck);
 
         // Variable is not declared
@@ -188,7 +188,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Print line statement");
             contextDepth(ctx);
         }
-        //TODO: Cover println case
+        // TODO: Cover println case
         visit(ctx.expr());
         stack.pop();
         stack.pop();
@@ -305,7 +305,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Assign LHS ident");
             contextDepth(ctx);
         }
-        curIdentToCheck = ctx.IDENT().toString();
+        stack.push(ctx.IDENT().toString());
         stack.push(checkDefinedVariable(ctx));
         return null;
     }
@@ -468,8 +468,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Identifier ");
             contextDepth(ctx);
         }
-        curIdentToCheck = ctx.IDENT().toString();
-        stack.push(curIdentToCheck);
+        stack.push(ctx.IDENT().toString());
         stack.push(checkDefinedVariable(ctx));
         return null;
     }
@@ -498,17 +497,9 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         }
         // Visit LHS
         visit(ctx.expr(0));
-        if (curIdentToCheck != "") {
-            stack.push(currentST.lookupAll(curIdentToCheck).getType());
-        }
 
         // Visit RHS
         visit(ctx.expr(1));
-        if (curIdentToCheck != "") {
-            String rhsType = currentST.lookupAll(curIdentToCheck)
-                            .getType();
-            checkType(ctx.expr(1), curIdentToCheck, rhsType);
-        }
 
         return null;
     }
