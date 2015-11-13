@@ -6,10 +6,15 @@ options {
 
 // Need to resolve the left recursive rule problem
 // type            : BASETYPE | arraytype | pairtype;
-type              : BASETYPE (LBRACK RBRACK)* | pairtype (LBRACK RBRACK)*;
+type    : BASETYPE (LBRACK RBRACK)*     #typebasetype
+        | pairtype (LBRACK RBRACK)*     #typepairtype
+        ;
 arraytype         : type LBRACK RBRACK;
 pairtype          : PAIR LPAREN pairelementype COMMA pairelementype RPAREN;
-pairelementype    : BASETYPE | arraytype | PAIR;
+pairelementype  : BASETYPE  #pairetbasetype
+                | arraytype #pairetarraytype
+                | PAIR      #pairetpair
+                ;
 
 expr: INTLITERAL            #integerliteral
     | BOOLEANLITERAL        #booleanliteral

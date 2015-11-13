@@ -1,5 +1,7 @@
 package frontend;
 
+import java.util.Stack;
+
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -102,7 +104,8 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             semanticError(ctx, "\"" + varname
                             + "\" is already defined in this scope");
         }
-
+        
+        System.out.println("Type assigned: " + curTypeToCheck);
         currentST.add(varname, new VARIABLE(curTypeToCheck));
 
         visit(ctx.assignRHS());
@@ -288,15 +291,65 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
     /* Type */
 
-    public Void visitType(WACCParser.TypeContext ctx) {
+    public Void visitTypebasetype(WACCParser.TypebasetypeContext ctx) {
         if (DEBUG) {
-            System.out.print("-Type ");
+            System.out.print("-Type BASETYPE ");
             contextDepth(ctx);
         }
         curTypeToCheck = ctx.BASETYPE().toString();
-
         return null;
     }
+    
+    public Void visitTypepairtype(WACCParser.TypepairtypeContext ctx) {
+        if (DEBUG) {
+            System.out.print("-Type PAIRTYPE ");
+            contextDepth(ctx);
+        }
+        return visitChildren(ctx);
+    }
+    
+    public Void visitArraytype(WACCParser.ArraytypeContext ctx) {
+        if (DEBUG) {
+            System.out.print("-Arraytype ");
+            contextDepth(ctx);
+        }
+        return null;
+    }
+    
+    public Void visitPairtype(WACCParser.PairtypeContext ctx) {
+        if (DEBUG) {
+            System.out.print("-Pairtype ");
+            contextDepth(ctx);
+        }
+        visit(ctx.pairelementype(0));
+        visit(ctx.pairelementype(1));
+        return null;
+    }
+    
+    public Void visitPairetbasetype(WACCParser.PairetbasetypeContext ctx) {
+        if (DEBUG) {
+            System.out.print("-Pairelementype basetype ");
+            contextDepth(ctx);
+        }
+        return null;
+    }
+    
+    public Void visitPairetarraytype(WACCParser.PairetarraytypeContext ctx) {
+        if (DEBUG) {
+            System.out.print("-Pairelementype arraytype ");
+            contextDepth(ctx);
+        }
+        return null;
+    }
+    
+    public Void visitPairetpair(WACCParser.PairetpairContext ctx) {
+        if (DEBUG) {
+            System.out.print("-Pairelementype pair ");
+            contextDepth(ctx);
+        }
+        return null;
+    }
+ 
 
     public Void visitTerminal(TerminalNode node) {
         if (DEBUG) {
@@ -410,7 +463,8 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         // Visit RHS
         visit(ctx.expr(1));
         if (curIdentToCheck != "") {
-            String rhsType = currentST.lookupAll(curIdentToCheck).getType();
+            String rhsType = currentST.lookupAll(curIdentToCheck)
+                            .getType();
             checkType(ctx.expr(1), curIdentToCheck, rhsType);
         }
 

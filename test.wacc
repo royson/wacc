@@ -1,4 +1,4 @@
-# type mismatch: int <- char
+# read into pair type
 
 # Output:
 # #semantic_error#
@@ -9,7 +9,7 @@
 # Program:
 
 begin
-  int x = 4 ;
-  char y = 'a' ;
-  println x + y
+  pair(int, int) p = newpair(1,2);
+  read fst p
 end
+
