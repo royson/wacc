@@ -1,5 +1,6 @@
 package frontend;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Stack;
 
@@ -21,6 +22,8 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     private Stack<String> stack = new Stack<String>();
     private String curIdentToCheck = "";
     private String curVarName = "";
+    private String[] primitiveTypes = { "INT", "BOOL", "CHAR",
+                    "STRING" };
 
     private boolean DEBUG = true;
 
@@ -62,8 +65,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
         if (!compareType.equals(type)) {
             String errorMessage = "Incompatible type at " + value;
-            errorMessage += " (expected: "
-                            + compareType;
+            errorMessage += " (expected: " + compareType;
             errorMessage += ", actual: " + type + ")";
             semanticError(ctx, errorMessage);
         }
@@ -133,24 +135,29 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         }
         visit(ctx.assignLHS());
         String readType = stack.pop();
-        if (!(readType.equals("INT") || readType.equals("CHAR")
-                        || readType.equals("STRING") || readType.equals("BOOL"))) {
-            String errorMessage = "Incompatible type "
-                            + readType;
+        if (!(Arrays.asList(primitiveTypes).contains(readType))) {
+            String errorMessage = "Incompatible type " + readType;
             semanticError(ctx, errorMessage);
         }
         return null;
     }
 
-    public Void visitFreeStatement(WACCParser.FreestatementContext ctx) {
+    public Void visitFreestatement(WACCParser.FreestatementContext ctx) {
+        // Can only free arrays and pairs
         if (DEBUG) {
             System.out.println("-Free statement");
             contextDepth(ctx);
         }
-        return visitChildren(ctx);
+        visit(ctx.expr());
+        String freeType = stack.pop();
+        stack.pop(); // Remove unnecessary varname from stack
+        if (Arrays.asList(primitiveTypes).contains(freeType)) {
+            semanticError(ctx, "Incompatible type " + freeType);
+        }
+        return null;
     }
 
-    public Void visitReturnStatement(
+    public Void visitReturnstatement(
                     WACCParser.ReturnstatementContext ctx) {
         if (DEBUG) {
             System.out.println("-Return statement");
@@ -159,7 +166,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         return visitChildren(ctx);
     }
 
-    public Void visitExitStatement(WACCParser.ExitstatementContext ctx) {
+    public Void visitExitstatement(WACCParser.ExitstatementContext ctx) {
         if (DEBUG) {
             System.out.println("-Exit statement");
             contextDepth(ctx);
@@ -167,7 +174,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         return visitChildren(ctx);
     }
 
-    public Void visitPrintStatement(
+    public Void visitPrintstatement(
                     WACCParser.PrintstatementContext ctx) {
         if (DEBUG) {
             System.out.println("-Print statement");
@@ -224,7 +231,9 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Statement block statement");
             contextDepth(ctx);
         }
-        return visitChildren(ctx);
+        visit(ctx.stat(0));
+        visit(ctx.stat(1));
+        return null;
     }
 
     /* Assign LHS and assign RHS */

@@ -1,4 +1,4 @@
-# Incompatible pair type
+# call free on a non-pair type 
 
 # Output:
 # #semantic_error#
@@ -9,7 +9,8 @@
 # Program:
 
 begin
-  pair(int, int) p = newpair(1,2);
-  read p
+  int x = 5;
+  println x;
+  free 9 ; 
+  println x
 end
-
