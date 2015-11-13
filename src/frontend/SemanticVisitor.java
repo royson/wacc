@@ -1,5 +1,6 @@
 package frontend;
 
+import java.util.Arrays;
 import java.util.Stack;
 
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -17,12 +18,19 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     // TODO: Preload initial symbol table with globally visible identifiers
 
     private SymbolTable<String, IDENTIFIER> currentST;
-    private Stack<String> typeStack = new Stack<String>();
+    private Stack<String> stack = new Stack<String>();
     private String curIdentToCheck = "";
+    private String curVarName = "";
 
     private boolean DEBUG = true;
 
     /* Helper functions */
+
+    private void printTypeStack() {
+        System.out.println("-----PRINTING STACK-----");
+        System.out.println(Arrays.toString(stack.toArray()));
+        System.out.println("------------------------");
+    }
 
     private void semanticError(ParserRuleContext ctx,
                     String errorMessage) {
@@ -43,14 +51,14 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
     private void checkType(ParserRuleContext ctx, String value,
                     String type) {
-        if (typeStack.isEmpty()) {
+        if (stack.isEmpty()) {
             if (DEBUG) {
                 System.out.println("Something ridiculous that we will know");
             }
             return;
         }
-        
-        String compareType = typeStack.pop();
+
+        String compareType = stack.pop();
 
         if (!compareType.equals(type)) {
             String errorMessage = "Incompatible type at " + value;
@@ -59,8 +67,6 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             errorMessage += ", actual: " + type.toUpperCase() + ")";
             semanticError(ctx, errorMessage);
         }
-
-        // Reset the current type
     }
 
     private String checkDefinedVariable(ParserRuleContext ctx) {
@@ -95,20 +101,17 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Variable init statement ");
             contextDepth(ctx);
         }
-        visit(ctx.type());
         ParseTree varnode = ctx.IDENT();
-        String varname = varnode.toString();
+        curVarName = varnode.toString();
 
         // Check for duplicate variable
-        IDENTIFIER object = currentST.lookup(varname);
+        IDENTIFIER object = currentST.lookup(curVarName);
         if (object != null) {
-            semanticError(ctx, "\"" + varname
+            semanticError(ctx, "\"" + curVarName
                             + "\" is already defined in this scope");
         }
-        
-        System.out.println("Type assigned: " + typeStack.peek());
-        currentST.add(varname, new VARIABLE(typeStack.peek()));
 
+        visit(ctx.type());
         visit(ctx.assignRHS());
 
         return null;
@@ -223,7 +226,11 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Assign RHS EXPR ");
             contextDepth(ctx);
         }
-        return visitChildren(ctx);
+        visit(ctx.expr());
+        String type = stack.pop();
+        String varname = stack.pop();
+        checkType(ctx, varname, type);
+        return null;
     }
 
     public Void visitAssignrhsarraylit(
@@ -241,7 +248,20 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Assign RHS newpair ");
             contextDepth(ctx);
         }
-        return visitChildren(ctx);
+        printTypeStack();
+        visit(ctx.expr(0)); // Visit fst
+        visit(ctx.expr(1)); // Visit snd
+        printTypeStack();
+
+        String sndType = stack.pop();
+        String sndVarname = stack.pop();
+        String fstType = stack.pop();
+        String fstVarname = stack.pop();
+        PAIR comparePair = new PAIR(fstType, sndType);
+
+        checkType(ctx, "newpair(" + fstVarname + "," + sndVarname
+                        + ")", comparePair.toString());
+        return null;
     }
 
     public Void visitAssignrhspairelem(
@@ -268,7 +288,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             contextDepth(ctx);
         }
         curIdentToCheck = ctx.IDENT().toString();
-        typeStack.push(checkDefinedVariable(ctx));
+        stack.push(checkDefinedVariable(ctx));
         return null;
     }
 
@@ -297,10 +317,14 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Type BASETYPE ");
             contextDepth(ctx);
         }
-        typeStack.push(ctx.BASETYPE().toString());
+        stack.push(ctx.BASETYPE().toString());
+
+        System.out.println("Type assigned: " + stack.peek());
+        currentST.add(curVarName, new VARIABLE(stack.peek()));
+
         return null;
     }
-    
+
     public Void visitTypepairtype(WACCParser.TypepairtypeContext ctx) {
         if (DEBUG) {
             System.out.print("-Type PAIRTYPE ");
@@ -308,7 +332,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         }
         return visitChildren(ctx);
     }
-    
+
     public Void visitArraytype(WACCParser.ArraytypeContext ctx) {
         if (DEBUG) {
             System.out.print("-Arraytype ");
@@ -316,7 +340,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         }
         return null;
     }
-    
+
     public Void visitPairtype(WACCParser.PairtypeContext ctx) {
         if (DEBUG) {
             System.out.print("-Pairtype ");
@@ -324,25 +348,36 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         }
         visit(ctx.pairelementype(0));
         visit(ctx.pairelementype(1));
+
+        String sndType = stack.pop();
+        String fstType = stack.pop();
+
+        PAIR newPair = new PAIR(fstType, sndType);
+        currentST.add(curVarName, newPair);
+        stack.push(newPair.toString());
+
         return null;
     }
-    
-    public Void visitPairetbasetype(WACCParser.PairetbasetypeContext ctx) {
+
+    public Void visitPairetbasetype(
+                    WACCParser.PairetbasetypeContext ctx) {
         if (DEBUG) {
             System.out.print("-Pairelementype basetype ");
             contextDepth(ctx);
         }
+        stack.push(ctx.BASETYPE().toString());
         return null;
     }
-    
-    public Void visitPairetarraytype(WACCParser.PairetarraytypeContext ctx) {
+
+    public Void visitPairetarraytype(
+                    WACCParser.PairetarraytypeContext ctx) {
         if (DEBUG) {
             System.out.print("-Pairelementype arraytype ");
             contextDepth(ctx);
         }
         return null;
     }
-    
+
     public Void visitPairetpair(WACCParser.PairetpairContext ctx) {
         if (DEBUG) {
             System.out.print("-Pairelementype pair ");
@@ -350,7 +385,6 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         }
         return null;
     }
- 
 
     public Void visitTerminal(TerminalNode node) {
         if (DEBUG) {
@@ -366,11 +400,8 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Int literal ");
             contextDepth(ctx);
         }
-        if (!typeStack.empty()) {
-            checkType(ctx, ctx.INTLITERAL().toString(), "int");
-        } else {
-            typeStack.push("int");
-        }
+        stack.push(ctx.INTLITERAL().toString());
+        stack.push("int");
         return null;
     }
 
@@ -380,11 +411,8 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Boolean literal ");
             contextDepth(ctx);
         }
-        if (!typeStack.empty()) {
-            checkType(ctx, ctx.BOOLEANLITERAL().toString(), "bool");
-        } else {
-            typeStack.push("bool");
-        }
+        stack.push(ctx.BOOLEANLITERAL().toString());
+        stack.push("bool");
         return null;
     }
 
@@ -393,11 +421,8 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Char literal ");
             contextDepth(ctx);
         }
-        if (!typeStack.empty()) {
-            checkType(ctx, ctx.CHARLITERAL().toString(), "char");
-        } else {
-            typeStack.push("char");
-        }
+        stack.push(ctx.CHARLITERAL().toString());
+        stack.push("char");
         return null;
     }
 
@@ -406,11 +431,8 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-String literal ");
             contextDepth(ctx);
         }
-        if (!typeStack.empty()) {
-            checkType(ctx, ctx.STRINGLITERAL().toString(), "string");
-        } else {
-            typeStack.push("string");
-        }
+        stack.push(ctx.STRINGLITERAL().toString());
+        stack.push("string");
         return null;
     }
 
@@ -419,6 +441,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Pair literal ");
             contextDepth(ctx);
         }
+
         return visitChildren(ctx);
     }
 
@@ -457,8 +480,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         // Visit LHS
         visit(ctx.expr(0));
         if (curIdentToCheck != "") {
-            typeStack.push(currentST.lookupAll(curIdentToCheck)
-                            .getType());
+            stack.push(currentST.lookupAll(curIdentToCheck).getType());
         }
 
         // Visit RHS
