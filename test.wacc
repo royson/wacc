@@ -1,4 +1,4 @@
-# type mismatch: int <- char
+# if condition type mismatch
 
 # Output:
 # #semantic_error#
@@ -9,7 +9,10 @@
 # Program:
 
 begin
-  int x = 4 ;
-  char y = 'a' ;
-  println x + y
+  int x = 5 ; 
+  if x then 
+    skip 
+  else 
+    skip
+  fi
 end

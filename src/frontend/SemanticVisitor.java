@@ -229,7 +229,17 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-If statement");
             contextDepth(ctx);
         }
-        return visitChildren(ctx);
+        //TODO: Fix the if statement
+        visit(ctx.expr());
+        String ifExprType = stack.pop();
+        stack.pop();
+        
+        stack.push("BOOL");
+        checkType(ctx.expr(),ctx.expr().getText(),ifExprType);
+        
+        visit(ctx.stat(0));
+        visit(ctx.stat(1));
+        return null;
     }
 
     public Void visitWhilestatement(
@@ -532,11 +542,13 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
         // Visit RHS
         visit(ctx.expr(1));
-        
+
         String rhsType = stack.pop();
         String rhsVarName = stack.pop();
+
+        checkType(ctx.expr(1), rhsVarName, rhsType);
         
-        checkType(ctx.expr(1),rhsVarName,rhsType);
+        stack.push(rhsType);
 
         return null;
     }
