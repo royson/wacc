@@ -20,7 +20,6 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
     private SymbolTable<String, IDENTIFIER> currentST;
     private Stack<String> stack = new Stack<String>();
-    private String curVarName = "";
     private String[] primitiveTypes = { "INT", "BOOL", "CHAR",
                     "STRING" };
 
@@ -104,12 +103,12 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             contextDepth(ctx);
         }
         ParseTree varnode = ctx.IDENT();
-        curVarName = varnode.toString();
+        stack.push(varnode.toString());
 
         // Check for duplicate variable
-        IDENTIFIER object = currentST.lookup(curVarName);
+        IDENTIFIER object = currentST.lookup(stack.peek());
         if (object != null) {
-            semanticError(ctx, "\"" + curVarName
+            semanticError(ctx, "\"" + stack.peek()
                             + "\" is already defined in this scope");
         }
 
@@ -335,6 +334,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Type BASETYPE ");
             contextDepth(ctx);
         }
+        String curVarName = stack.pop();
         stack.push(ctx.BASETYPE().toString().toUpperCase());
 
         System.out.println("Type assigned: " + stack.peek());
@@ -364,6 +364,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Pairtype ");
             contextDepth(ctx);
         }
+        String curVarName = stack.pop();
         visit(ctx.pairelementype(0));
         visit(ctx.pairelementype(1));
 
@@ -371,6 +372,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         String fstType = stack.pop();
 
         PAIR newPair = new PAIR(fstType, sndType);
+
         currentST.add(curVarName, newPair);
         stack.push(newPair.toString());
 
