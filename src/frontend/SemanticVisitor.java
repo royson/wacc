@@ -268,8 +268,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         String readType = stack.pop();
 
         // Only char and integers are allowed.
-        System.out.println("READ TYPE IS : " + readType);
-        if (!readType.equals(INT) || !readType.equals(CHAR)) {
+        if (!readType.equals(INT) && !readType.equals(CHAR)) {
             semanticError(ctx, "Incompatible type " + readType);
         }
         return null;
