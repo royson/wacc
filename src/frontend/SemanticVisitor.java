@@ -112,7 +112,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         IDENTIFIER object = currentST.lookupAll(curIdentToCheck);
 
         // Variable is not declared
-        if (object == null) {
+        if (object == null || object instanceof FUNCTION) {
             String errorMessage = "Variable " + curIdentToCheck
                             + " is not defined in this scope";
             semanticError(ctx, errorMessage);

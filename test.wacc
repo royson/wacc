@@ -1,4 +1,4 @@
-# trying to return from the main program
+# tries to assign to a function
 
 # Output:
 # #semantic_error#
@@ -9,6 +9,9 @@
 # Program:
 
 begin
-  return 42 ;
-  println "should not get here" 
+  int f() is
+    return 3
+  end
+  
+  f = 2
 end
