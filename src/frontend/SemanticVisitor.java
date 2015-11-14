@@ -47,6 +47,16 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     private String renameStringToCharArray(String s) {
         return s.equals("STRING") ? STRING : s;
     }
+    
+    private void newScope(){
+       SymbolTable<String, IDENTIFIER> st 
+       		= new SymbolTable<String, IDENTIFIER>(currentST);
+       currentST = st;
+    }
+    
+    private void freeScope(){
+      	currentST = currentST.getEncSymTable();
+    }
 
     private void semanticError(ParserRuleContext ctx,
                     String errorMessage) {
@@ -293,12 +303,9 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
   
         //giving a new scope for each stat
         for(int x = 0; x < 2; x++){
-          SymbolTable<String,IDENTIFIER> newST 
-          	= new SymbolTable<String,IDENTIFIER>(currentST);
-          
-          currentST = newST;
+          newScope();
           visit(ctx.stat(x));
-          currentST = currentST.getEncSymTable();
+          freeScope();
         }
         return null;
     }
@@ -319,14 +326,10 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         String condition = ctx.expr().getText();
         checkType(ctx.expr(),condition,whileExprType);
         
-        SymbolTable<String,IDENTIFIER> newST 
-      	= new SymbolTable<String,IDENTIFIER>(currentST);
-      
-        currentST = newST;
-      
+        newScope();
         visit(ctx.stat());
+        freeScope();
         
-        currentST = currentST.getEncSymTable();  
         return null;
     }
 
@@ -336,13 +339,11 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Begin end statement");
             contextDepth(ctx);
         }
-        SymbolTable<String, IDENTIFIER> st = new SymbolTable<String, IDENTIFIER>(
-                        currentST);
-        currentST = st;
-
+        
+        newScope();
         visit(ctx.stat());
-
-        currentST = st.getEncSymTable();
+        freeScope();
+        
         return null;
     }
 
@@ -803,18 +804,14 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         String functionReturnType = stack.pop();
         currentST.add(functionName, new FUNCTION(functionReturnType));
 
-        SymbolTable<String, IDENTIFIER> st = new SymbolTable<String, IDENTIFIER>(
-                        currentST);
-        currentST = st;
-        
+        newScope();
         // Grabs the params and store it in the function object
         if (ctx.param_list() != null) {
             visit(ctx.param_list());
         }
         
         visit(ctx.stat());
-
-        currentST = st.getEncSymTable();
+        freeScope();
         
         return null;
     }
