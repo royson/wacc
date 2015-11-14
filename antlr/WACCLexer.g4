@@ -41,10 +41,22 @@ BASETYPE        : 'int' | 'bool' | 'char' | 'string';
 PAIR            : 'pair';
 
 // Operators
-// Hyphen minus : -
-// Hyphen       : ‐
 UNARYOP         : '!' | '-' | 'len' | 'ord' | 'chr';
-BINARYOP        : '*' | '/' | '%' | ' + ' | ' - ' | '>' | '>=' | '<' | '<=' | '==' | '!=' | '&&' | '||';
+
+//Binary Operators
+TIMES           : '*';
+DIVIDE          : '/';
+MOD             : '%' ;
+PLUS            : ' + ';
+MINUS           : ' - ';
+GT              : '>';
+GTE             : '>=';
+LT              : '<';
+LTE             : '<=';
+EQUAL           : '=='; 
+NOTEQUAL        : '!=';
+AND             : '&&'; 
+OR              : '||';
 
 // Boolean literal
 BOOLEANLITERAL  : 'true' | 'false';

@@ -148,31 +148,6 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             semanticError(ctx, errorMessage);
         }
     }
-    
-    private void checkMultipleTypes(ParserRuleContext ctx, String value,
-        String type) {
-      	//types are separated by commas
-        if (stack.isEmpty()) {
-          	if (DEBUG) {
-          	  	System.out.println("Something ridiculous that we will know");
-          		}
-          	return;
-        }
-        String compareTypes = stack.pop();
-        boolean semErr = true;
-        List<String> typesList = Arrays.asList(compareTypes.split("\\s*,\\s*"));
-        for(String compareType : typesList ){
-          if (type.equals(compareType)) {
-        	semErr = false;
-          }
-        }
-        if(semErr){
-          String errorMessage = "Incompatible type at " + value;
-          errorMessage += " (expected: " + Arrays.toString(typesList.toArray());
-          errorMessage += ", actual: " + type + ")";
-          semanticError(ctx, errorMessage);
-        }
-    }
 
     private String checkDefinedVariable(ParserRuleContext ctx) {
         String curIdentToCheck = stack.peek();
@@ -744,6 +719,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         }
         stack.push(ctx.IDENT().toString());
         stack.push(checkDefinedVariable(ctx));
+        
         return null;
     }
 
@@ -762,20 +738,52 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         }
         return visitChildren(ctx);
     }
+    
+    public Void visitBinarymultipledivideoperator(WACCParser.BinarymultipledivideoperatorContext ctx){
+      visitBinaryoperator(ctx,ctx.multiplyDivideOp().getText(),ctx.expr(0),ctx.expr(1));
+      return null;
+    }
+    
+    public Void visitBinaryaddsubtractoperator(WACCParser.BinaryaddsubtractoperatorContext ctx){
+      visitBinaryoperator(ctx,ctx.addSubtractOp().getText(),ctx.expr(0),ctx.expr(1));
+      return null;
+    }
+    
+    public Void visitBinarycomparatoroperator(WACCParser.BinarycomparatoroperatorContext ctx){
+      visitBinaryoperator(ctx,ctx.comparatorOp().getText(),ctx.expr(0),ctx.expr(1));
+      return null;
+    }
+    
+    public Void visitBinaryequalityoperator(WACCParser.BinaryequalityoperatorContext ctx){
+      visitBinaryoperator(ctx,ctx.equalityOp().getText(),ctx.expr(0),ctx.expr(1));
+      return null;
+    }
+    
+    public Void visitBinarylogicalandoperator(WACCParser.BinarylogicalandoperatorContext ctx){
+      visitBinaryoperator(ctx,ctx.logicalAndOp().getText(),ctx.expr(0),ctx.expr(1));
+      return null;
+    }
+    
+    public Void visitBinarylogicaloroperator(WACCParser.BinarylogicaloroperatorContext ctx){
+      visitBinaryoperator(ctx,ctx.logicalOrOp().getText(),ctx.expr(0),ctx.expr(1));
+      return null;
+    }
 
-    public Void visitBinaryoperator(
-                    WACCParser.BinaryoperatorContext ctx) {
+    private void visitBinaryoperator(
+                   ParserRuleContext ctx, String binaryOp, 
+                   ParserRuleContext lhs,
+                   ParserRuleContext rhs) {
         if (DEBUG) {
             System.out.print("-Binary operator ");
             contextDepth(ctx);
         };
         // Visit LHS
-        visit(ctx.expr(0));
+        visit(lhs);
         
         String lhsType = stack.pop();
         
         // Visit RHS
-        visit(ctx.expr(1));
+        visit(rhs);
         
         String rhsType = stack.pop();
         String rhsExpr = stack.pop();
@@ -786,11 +794,9 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         
         //check arguments for binary operation
         String lhsExpr = stack.peek();
-        
-        String binaryOp = ctx.BINARYOP().toString();
-        String returnType = checkBinaryOpArgument(ctx.expr(0),
+        String returnType = checkBinaryOpArgument(lhs,
         	binaryOp ,lhsExpr, lhsType);
-        returnType = checkBinaryOpArgument(ctx.expr(1), binaryOp,
+        returnType = checkBinaryOpArgument(rhs, binaryOp,
         	rhsExpr, rhsType);
 
         //check if both argument types are the same
@@ -805,8 +811,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         	= (lhsExpr+binaryOp+rhsExpr).replaceAll("\\s","");
         stack.push(newExpr);
         stack.push(returnType);
-        
-        return null;
+        printStack();
     }
 
     public Void visitBrackets(WACCParser.BracketsContext ctx) {

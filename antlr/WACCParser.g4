@@ -14,6 +14,20 @@ pairelementype  : BASETYPE  #pairetbasetype
                 | PAIR      #pairetpair
                 ;
 
+binaryOp : multiplyDivideOp 
+| addSubtractOp 
+| comparatorOp 
+| equalityOp
+| logicalAndOp
+| logicalOrOp;
+
+multiplyDivideOp: TIMES | DIVIDE | MOD;
+addSubtractOp: PLUS | MINUS;
+comparatorOp: LT | LTE | GT | GTE;
+equalityOp: EQUAL | NOTEQUAL;
+logicalAndOp: AND;
+logicalOrOp: OR;
+
 expr: INTLITERAL            #integerliteral
     | BOOLEANLITERAL        #booleanliteral
     | CHARLITERAL           #charliteral
@@ -22,7 +36,12 @@ expr: INTLITERAL            #integerliteral
     | IDENT                 #identifier
     | arrayElem             #arrayelement
     | UNARYOP expr          #unaryoperator
-    | expr BINARYOP expr    #binaryoperator
+    | expr multiplyDivideOp expr    #binarymultipledivideoperator
+    | expr addSubtractOp expr       #binaryaddsubtractoperator
+    | expr comparatorOp expr        #binarycomparatoroperator
+    | expr equalityOp expr          #binaryequalityoperator
+    | expr logicalAndOp expr        #binarylogicalandoperator
+    | expr logicalOrOp expr         #binarylogicaloroperator
     | LPAREN expr RPAREN    #brackets
     ;
 
