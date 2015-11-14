@@ -1,24 +1,33 @@
 package semantics;
 
 public class FUNCTION extends IDENTIFIER {
-  private PARAM[] formals;
-  int paramCounter;
+  private PARAM[] args;
+  int size;
 
   public FUNCTION(String returnType) {
 	super(returnType);
-	this.formals = null;
-	paramCounter = 0;
+	this.args = null;
+	size = 0;
   }
   
-  //Call this in visitParamList
-  public void paramSize(int s){
-	this.formals = new PARAM[s];
+  public void setParamSize(int s){
+	this.args = new PARAM[s];
   }
   
-  //Call this in visitParam
+  public int getParamSize(){
+	return size;
+  }
+  
   public void addParam(PARAM p){
-	formals[paramCounter] = p;
-	paramCounter++;
+	args[size] = p;
+	size++;
+  }
+  
+  public PARAM getParam(int pos){
+	if(pos < size){
+	  return args[pos];
+	}
+	return null;
   }
 
 }

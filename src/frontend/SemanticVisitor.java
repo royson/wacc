@@ -74,6 +74,17 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         System.out.println(ctx.depth() + " " + ctx.getChildCount()
                         + " " + ctx);
     }
+    
+    private void checkParameters(ParserRuleContext ctx,
+    	String funcName,int paramSize,int funcSize){
+      		if(paramSize != funcSize){
+      	  		String errorMessage 
+      	  			= "Incorrect number of parameters for "+funcName+
+      	  			" (expected: "+funcSize+", actual: "+paramSize+
+      	  			")";
+      	  			semanticError(ctx,errorMessage);
+      		}
+    }
 
     private void checkType(ParserRuleContext ctx, String value,
                     String type) {
@@ -423,16 +434,32 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
       }
       
       String funcName = stack.pop();
-      currentST.lookupAll(funcName);
+      IDENTIFIER obj = currentST.lookupAll(funcName);
+      if(!(obj instanceof FUNCTION)){
+    	  semanticError(ctx,"Something went wrong.");
+      }
+      
+      FUNCTION func = (FUNCTION) obj;
+      
       //TODO
       
       //List of args
       List<ExprContext> args = ctx.expr();
       
-      //TODO
+      checkParameters(ctx.getParent(),funcName,ctx.expr().size(),func.getParamSize());
+      
       if(!(ctx.expr().isEmpty())){
+    	int i = 0;
     	  for(ExprContext ectx : args){
     		  visit(ectx);
+    		  String argType = stack.pop();
+    		  String argName = stack.pop();
+    		  
+    		  PARAM p = func.getParam(i);
+    		  stack.push(p.getType());
+    		  checkType(ectx, argName, argType);
+    		  
+    		  i++;
     	  }
       }
       
@@ -750,7 +777,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         FUNCTION curFunc = (FUNCTION) obj;
 
         System.out.println("CHILDREN COUNT: " + ctx.param().size());
-        curFunc.paramSize(ctx.param().size());
+        curFunc.setParamSize(ctx.param().size());
 
         return visitChildren(ctx);
     }

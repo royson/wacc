@@ -1,4 +1,4 @@
-# if condition type mismatch
+# function parameter type mismatch
 
 # Output:
 # #semantic_error#
@@ -9,10 +9,10 @@
 # Program:
 
 begin
-  if 2==2 then 
-    int x = 2 
-  else 
-    int x = 3
-  fi ;
-    x = 4
+  int f(int x, int y) is
+    return x
+  end
+  bool b = true ; 
+  int x = call f(b) 
 end
+  
