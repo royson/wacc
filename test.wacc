@@ -1,27 +1,18 @@
-# register machine style addition
+# program has function which only contains an if statement and a return in each branch
 
 # Output:
-# Enter the first number: #input# Enter the second number: #input# Initial value of x: #output#
-# #output#
-# final value of x: #output
+# true
 
 # Program:
 
 begin
-  int x = 0 ;
-  int y = 0 ;
-  print "Enter the first number: " ;
-  read x ;
-  print "Enter the second number: " ;
-  read y ;
-  print "Initial value of x: " ;
-  println x ;
-  while y > 0 do
-    print "(+)" ;
-    x = x + 1 ;
-    y = y - 1
-  done ;
-  println "" ;
-  print "final value of x: " ;
+  bool f() is 
+    if true then
+      return true
+    else
+      return false
+    fi
+  end
+  bool x = call f();
   println x
 end

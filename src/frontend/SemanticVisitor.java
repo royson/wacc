@@ -20,9 +20,6 @@ import antlr.WACCParserBaseVisitor;
 
 public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
-    private SymbolTable<String, IDENTIFIER> topST;
-    // TODO: Preload initial symbol table with globally visible identifiers
-
     private SymbolTable<String, IDENTIFIER> currentST;
     private Stack<String> stack = new Stack<String>();
 
@@ -296,7 +293,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             contextDepth(ctx);
         }
         
-        if(stack.isEmpty()){
+        if(currentST.getEncSymTable() == null){
           //returning from main program
           semanticError(ctx, "Cannot return from the global scope.");
         }else{
