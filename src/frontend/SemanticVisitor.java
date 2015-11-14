@@ -48,6 +48,13 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         return s.equals("STRING") ? STRING : s;
     }
     
+    private void checkBinaryOpType(ParserRuleContext ctx, String type){
+      if(!(Arrays.asList(primitiveTypes).contains(type))
+      	||type.equals(STRING)){
+          semanticError(ctx,"Incompatible type " +type);
+      }
+    }
+    
     private void newScope(){
        SymbolTable<String, IDENTIFIER> st 
        		= new SymbolTable<String, IDENTIFIER>(currentST);
@@ -405,11 +412,10 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
       }      
       
       List<ExprContext> exprs = ctx.expr();
-      if(!exprs.isEmpty()){
-    	  for(ExprContext ectx : exprs){
-    		  //Populate the stack with names and types
-    		  visit(ectx);
-    	  }
+      
+      for(ExprContext ectx : exprs){
+    	//Populate the stack with names and types
+    	visit(ectx);
       }
       
       return null;
@@ -549,8 +555,20 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Type BASETYPE ");
             contextDepth(ctx);
         }
-        String curType = renameStringToCharArray(ctx.BASETYPE()
-                        .toString().toUpperCase());
+        
+        String arrayBrackets = "";
+        List<TerminalNode> brackets = ctx.LBRACK();
+
+        int i = 0;
+		while (i < brackets.size()) {
+		  arrayBrackets += "[]";
+		  i++;
+		}
+        
+        String curType = ctx.BASETYPE().toString().toUpperCase()
+        				 + arrayBrackets;
+        
+        curType = renameStringToCharArray(curType);
         stack.push(curType);
 
         return null;
@@ -712,14 +730,21 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.print("-Binary operator ");
             contextDepth(ctx);
-        }
+        };
         // Visit LHS
         visit(ctx.expr(0));
         
+        String lhsType = stack.peek();
+        
         // Visit RHS
         visit(ctx.expr(1));
+        
         String rhsType = stack.pop();
         String rhsExpr = stack.pop();
+        
+        //check for invalid types
+        checkBinaryOpType(ctx, lhsType);
+        checkBinaryOpType(ctx, rhsType);
         
         //check if both argument types are the same
         checkType(ctx.expr(1), rhsExpr, rhsType);
