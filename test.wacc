@@ -9,8 +9,7 @@
 # Program:
 
 begin
-  int[] x = [1,2];
-  int[] y = [3,4];
-  int z = 5;
-  println z > y
+  char x = 'a';
+  int y = 2;
+  println x > y
 end

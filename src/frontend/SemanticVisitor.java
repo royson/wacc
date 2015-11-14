@@ -82,6 +82,44 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
                         + " " + ctx);
     }
     
+    private String checkBinaryOpArgument(ParserRuleContext ctx, 
+    	String binaryOp, String binaryExpr, String binaryType){
+      String returnType = "";
+      
+      //check if rhsType match with operator's requirement
+      switch(binaryOp){
+      	case "*":
+      	case "/":
+      	case "%":
+      	case " + ":
+      	case " - ":
+      	  stack.push(INT);
+      	  checkType(ctx, binaryExpr, binaryType);
+      	  returnType = binaryType;
+      	  break;
+      	case ">":
+      	case ">=":
+      	case "<": 
+      	case "<=":
+      	  if(!binaryType.equals(INT) && !binaryType.equals(CHAR)){
+      		stack.push(INT);
+      		checkType(ctx, binaryExpr, binaryType);
+      	  }
+      	  returnType = BOOL;
+      	  break;
+      	case "&&":
+      	case "||":
+      	  stack.push(BOOL);
+      	  checkType(ctx, binaryExpr, binaryType);
+      	case "==":
+      	case "!=":
+      	  returnType = BOOL;
+      	  break;
+      }
+      
+      return returnType;
+    }
+    
     private void checkParameters(ParserRuleContext ctx,
     	String funcName,int paramSize,int funcSize){
       		if(paramSize != funcSize){
@@ -734,7 +772,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         // Visit LHS
         visit(ctx.expr(0));
         
-        String lhsType = stack.peek();
+        String lhsType = stack.pop();
         
         // Visit RHS
         visit(ctx.expr(1));
@@ -746,43 +784,23 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         checkBinaryOpType(ctx, lhsType);
         checkBinaryOpType(ctx, rhsType);
         
-        //check if both argument types are the same
-        checkType(ctx.expr(1), rhsExpr, rhsType);
+        //check arguments for binary operation
+        String lhsExpr = stack.peek();
         
         String binaryOp = ctx.BINARYOP().toString();
-        String returnType = "";
-        
-        //check if rhsType match with operator's requirement
-        switch(binaryOp){
-        	case "*":
-        	case "/":
-        	case "%":
-        	case " + ":
-        	case " - ":
-        	  stack.push(INT);
-        	  checkType(ctx.expr(1), rhsExpr, rhsType);
-        	  returnType = rhsType;
-        	  break;
-        	case ">":
-        	case ">=":
-        	case "<": 
-        	case "<=":
-        	  stack.push(CHAR+","+INT);
-        	  checkMultipleTypes(ctx.expr(1),rhsExpr, rhsType);
-        	  returnType = BOOL;
-        	  break;
-        	case "&&":
-        	case "||":
-        	  stack.push(BOOL);
-        	  checkType(ctx.expr(1), rhsExpr, rhsType);
-        	case "==":
-        	case "!=":
-        	  returnType = BOOL;
-        	  break;
-        }
+        String returnType = checkBinaryOpArgument(ctx.expr(0),
+        	binaryOp ,lhsExpr, lhsType);
+        returnType = checkBinaryOpArgument(ctx.expr(1), binaryOp,
+        	rhsExpr, rhsType);
+
+        //check if both argument types are the same
+        //mainly for '>' '>=' '<=' '<' cases
+        stack.push(rhsType);
+        checkType(ctx, lhsExpr, lhsType);
         
         //Push the new expression into the stack
-        String lhsExpr = stack.pop();
+        //remove unused expression
+        stack.pop();
         String newExpr 
         	= (lhsExpr+binaryOp+rhsExpr).replaceAll("\\s","");
         stack.push(newExpr);
