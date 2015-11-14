@@ -33,23 +33,28 @@ public class Main {
         parser.removeErrorListeners();
         parser.addErrorListener(new WACCErrorListener());
 
-        ParseTree tree = parser.program();
-        SemanticVisitor visitor = new SemanticVisitor();
-        visitor.visit(tree);
+        
 
-        // -----------Syntax error-----------
-        // syntaxErrorCount - Consists of errors found by the parser
-        // (parser.getNumberOfSyntaxErrors())
-        // +
-        // errors found in exceptional cases (visitor.getSyntaxErrorCount())
-//        int syntaxErrorCount = visitor.getSyntaxErrorCount()
-//                        + parser.getNumberOfSyntaxErrors();
-//        if (syntaxErrorCount > 0) {
-//            System.err.println("Found " + syntaxErrorCount
-//                            + " syntax error(s)");
-//            System.out.println("#syntax error#");
-//            System.exit(100);
-//        }
+		ParseTree tree = parser.program();
+		SyntaxVisitor synVisitor = new SyntaxVisitor();
+		synVisitor.visit(tree);
+		
+        SemanticVisitor semVisitor = new SemanticVisitor();
+        semVisitor.visit(tree);
+
+		// -----------Syntax error-----------
+		// syntaxErrorCount - Consists of errors found by the parser
+		// (parser.getNumberOfSyntaxErrors())
+		// +
+		// errors found in exceptional cases (visitor.getSyntaxErrorCount())
+		int syntaxErrorCount = synVisitor.getSyntaxErrorCount()
+				+ parser.getNumberOfSyntaxErrors();
+		if (syntaxErrorCount > 0) {
+			System.err
+					.println("Found " + syntaxErrorCount + " syntax error(s)");
+			System.out.println("#syntax error#");
+			System.exit(100);
+		}
 
         // -----------Semantic error-----------
 //        int semanticErrorCount = 0;

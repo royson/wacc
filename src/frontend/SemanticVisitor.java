@@ -28,8 +28,6 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     
     private String[] primitiveTypes = { INT, BOOL, CHAR,
                     STRING };
-
-
     
     private boolean DEBUG = true;
 
