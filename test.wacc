@@ -1,18 +1,40 @@
-# program has function which only contains an if statement and a return in each branch
+# multiple string assignments and comparisons
 
 # Output:
-# true
+# s1 is Hi
+# s2 is Hi
+# They are not the same.
+# Now modify s1[0] = 'h'
+# s1 is hi
+# s2 is Hi
+# They are not the same.
+
 
 # Program:
 
 begin
-  bool f() is 
-    if true then
-      return true
-    else
-      return false
-    fi
-  end
-  bool x = call f();
-  println x
+  string s1 = "Hi" ;
+  string s2 = "Hi" ;
+  print "s1 is " ;
+  println s1 ;
+  print "s2 is " ;
+  println s2 ;
+  if s1 == s2 then
+    println "They are the same." 
+  else 
+    println "They are not the same."
+  fi ;
+
+  println "Now modify s1[0] = \'h\'" ;
+  s1[0] = 'h' ;
+
+  print "s1 is " ;
+  println s1 ;
+  print "s2 is " ;
+  println s2 ;
+  if s1 == s2 then
+    println "They are the same." 
+  else 
+    println "They are not the same."
+  fi
 end

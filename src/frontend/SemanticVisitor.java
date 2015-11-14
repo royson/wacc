@@ -234,7 +234,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         visit(ctx.type());
 
         String varType = stack.peek();
-        // TODO: Fix with array arrives.
+        //TODO: Convert to array implementation
         if (!varType.startsWith("Pair")) {
             currentST.add(ctx.IDENT().toString(),
                             new VARIABLE(varType));
@@ -347,7 +347,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Print line statement");
             contextDepth(ctx);
         }
-        // TODO: Cover println case
+
         visit(ctx.expr());
         stack.pop();
         stack.pop();
@@ -462,6 +462,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         contextDepth(ctx);
       }      
       
+      //TODO: Implement array
       List<ExprContext> exprs = ctx.expr();
       
       for(ExprContext ectx : exprs){
@@ -514,8 +515,6 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
       }
       
       FUNCTION func = (FUNCTION) obj;
-      
-      //TODO
       
       //List of args
       List<ExprContext> args = ctx.expr();
@@ -587,7 +586,23 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Assign LHS array elem");
             contextDepth(ctx);
         }
-        return visitChildren(ctx);
+        //TODO: Convert to array implementation
+        String varName = ctx.arrayElem().getText();
+        String arrName = varName.substring(0, 
+        	varName.indexOf('['));
+        stack.push(varName);
+        System.out.println("---ARR: " + arrName);
+        stack.push(arrName);
+        stack.push(checkDefinedVariable(ctx));
+        printStack();
+        String typeNeeded = stack.pop();
+        typeNeeded = typeNeeded.substring(0, typeNeeded.indexOf('['));
+        //remove arrName
+        stack.pop();
+        stack.push(typeNeeded);
+        printStack();
+        
+        return null;
     }
 
     public Void visitAssignpairelem(
@@ -766,6 +781,8 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Array elements ");
             contextDepth(ctx);
         }
+        
+        //TODO: Implement array implementation
         return visitChildren(ctx);
     }
 
@@ -872,7 +889,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Function: " + ctx.IDENT().toString());
             contextDepth(ctx);
         }
-        // TODO
+
         // Check for duplicate function
         String functionName = ctx.IDENT().toString();
         IDENTIFIER object = currentST.lookupAll(functionName);
