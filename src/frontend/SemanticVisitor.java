@@ -75,7 +75,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         String compareType = stack.pop();
 
         if (!compareType.equals(type)) {
-            String errorMessage = "Incompatible type at " + value;
+            String errorMessage = "Incompatible type at " + value.replaceAll("\\s","");
             errorMessage += " (expected: " + compareType;
             errorMessage += ", actual: " + type + ")";
             semanticError(ctx, errorMessage);
@@ -241,7 +241,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         }
         
         visit(ctx.expr());
-        printStack();
+
         String exprType = stack.pop();
         String exprCode = stack.pop();
         //exit code must be 0-256
@@ -286,7 +286,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         
         //Check if the condition is a BOOL
         stack.push(BOOL);
-        String condition = ctx.expr().getText().replaceAll("\\s","");
+        String condition = ctx.expr().getText();
         checkType(ctx.expr(),condition,ifExprType);
         
         visit(ctx.stat(0));
@@ -307,7 +307,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         
         //Check if the condition is a BOOL
         stack.push(BOOL);
-        String condition = ctx.expr().getText().replaceAll("\\s","");
+        String condition = ctx.expr().getText();
         checkType(ctx.expr(),condition,whileExprType);
         
         visit(ctx.stat());
@@ -399,7 +399,26 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Assign RHS call ");
             contextDepth(ctx);
         }
-        return visitChildren(ctx);
+        
+        
+        String returnType = stack.peek();
+        String func = ctx.IDENT().toString();
+        
+        IDENTIFIER obj = currentST.lookupAll(func);
+
+        if(obj == null){
+          stack.push(func);
+          checkDefinedVariable(ctx);
+        }
+        else if(!(obj instanceof FUNCTION)){
+          semanticError(ctx,"\""+func+"\" is not a function");
+        }else{
+          stack.push(obj.getType());
+          checkType(ctx,ctx.getText(),returnType);
+        }
+        
+        
+        return null;
     }
 
     public Void visitAssignlhsident(
@@ -727,7 +746,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             visit(ctx.param_list());
         }
 
-        visit(ctx.funcStat());
+        visit(ctx.stat());
 
         currentST = st.getEncSymTable();
 

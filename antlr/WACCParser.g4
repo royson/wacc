@@ -30,9 +30,7 @@ arrayElem : IDENT (LBRACK expr RBRACK)+;
 
 program: (BEGIN (func)* (stat) END)* EOF;
 
-func: type IDENT LPAREN param_list? RPAREN IS funcStat END;
-funcStat: (stat SEMI)* 
-(RETURN expr | EXIT expr | IF expr THEN funcStat ELSE funcStat FI);
+func: type IDENT LPAREN param_list? RPAREN IS stat END;
 
 param_list: param (COMMA param)*;
 

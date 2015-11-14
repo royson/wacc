@@ -1,4 +1,4 @@
-# tries to assign to a function
+# function call type mismatch
 
 # Output:
 # #semantic_error#
@@ -10,8 +10,9 @@
 
 begin
   int f() is
-    return 3
+    return 0 
   end
-  
-  f = 2
+  bool b = call f() ;
+  println b 
 end
+  
