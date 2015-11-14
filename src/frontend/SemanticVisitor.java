@@ -48,9 +48,47 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         return s.equals("STRING") ? STRING : s;
     }
     
+    private void visitBinaryoperator(ParserRuleContext ctx,
+  	  String binaryOp, ParserRuleContext lhs, ParserRuleContext rhs) {
+    	if (DEBUG) {
+    	  System.out.print("-Binary operator ");
+    	  contextDepth(ctx);
+    	}
+    	;
+    	// Visit LHS
+    	visit(lhs);
+    
+    	String lhsType = stack.pop();
+    
+    	// Visit RHS
+    	visit(rhs);
+    
+    	String rhsType = stack.pop();
+    	String rhsExpr = stack.pop();
+    
+    	// check arguments for binary operation
+    	String lhsExpr = stack.peek();
+    	String returnType = checkBinaryOpArgument(ctx,lhs, binaryOp, lhsExpr,
+    		lhsType);
+    	returnType = checkBinaryOpArgument(ctx,rhs, binaryOp, rhsExpr,
+    		rhsType);
+    
+    	// check if both argument types are the same
+    	// mainly for '>' '>=' '<=' '<' cases
+    	stack.push(rhsType);
+    	checkType(ctx, lhsExpr, lhsType);
+    
+    	// Push the new expression into the stack
+    	// remove unused expression
+    	stack.pop();
+    	String newExpr = (lhsExpr + binaryOp + rhsExpr).replaceAll("\\s",
+    		"");
+    	stack.push(newExpr);
+    	stack.push(returnType);
+    }
+    
     private void checkBinaryOpType(ParserRuleContext ctx, String type){
-      if(!(Arrays.asList(primitiveTypes).contains(type))
-      	||type.equals(STRING)){
+      if(!(Arrays.asList(primitiveTypes).contains(type))){
           semanticError(ctx,"Incompatible type " +type);
       }
     }
@@ -83,6 +121,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     }
     
     private String checkBinaryOpArgument(ParserRuleContext ctx, 
+    	ParserRuleContext ectx, 
     	String binaryOp, String binaryExpr, String binaryType){
       String returnType = "";
       
@@ -94,7 +133,8 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
       	case " + ":
       	case " - ":
       	  stack.push(INT);
-      	  checkType(ctx, binaryExpr, binaryType);
+      	  checkType(ectx, binaryExpr, binaryType);
+      	  checkBinaryOpType(ctx, binaryType);
       	  returnType = binaryType;
       	  break;
       	case ">":
@@ -103,14 +143,16 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
       	case "<=":
       	  if(!binaryType.equals(INT) && !binaryType.equals(CHAR)){
       		stack.push(INT);
-      		checkType(ctx, binaryExpr, binaryType);
+      		checkType(ectx, binaryExpr, binaryType);
+      		checkBinaryOpType(ctx, binaryType);
       	  }
       	  returnType = BOOL;
       	  break;
       	case "&&":
       	case "||":
       	  stack.push(BOOL);
-      	  checkType(ctx, binaryExpr, binaryType);
+      	  checkType(ectx, binaryExpr, binaryType);
+      	  checkBinaryOpType(ctx, binaryType);
       	case "==":
       	case "!=":
       	  returnType = BOOL;
@@ -767,51 +809,6 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitBinarylogicaloroperator(WACCParser.BinarylogicaloroperatorContext ctx){
       visitBinaryoperator(ctx,ctx.logicalOrOp().getText(),ctx.expr(0),ctx.expr(1));
       return null;
-    }
-
-    private void visitBinaryoperator(
-                   ParserRuleContext ctx, String binaryOp, 
-                   ParserRuleContext lhs,
-                   ParserRuleContext rhs) {
-        if (DEBUG) {
-            System.out.print("-Binary operator ");
-            contextDepth(ctx);
-        };
-        // Visit LHS
-        visit(lhs);
-        
-        String lhsType = stack.pop();
-        
-        // Visit RHS
-        visit(rhs);
-        
-        String rhsType = stack.pop();
-        String rhsExpr = stack.pop();
-        
-        //check for invalid types
-        checkBinaryOpType(ctx, lhsType);
-        checkBinaryOpType(ctx, rhsType);
-        
-        //check arguments for binary operation
-        String lhsExpr = stack.peek();
-        String returnType = checkBinaryOpArgument(lhs,
-        	binaryOp ,lhsExpr, lhsType);
-        returnType = checkBinaryOpArgument(rhs, binaryOp,
-        	rhsExpr, rhsType);
-
-        //check if both argument types are the same
-        //mainly for '>' '>=' '<=' '<' cases
-        stack.push(rhsType);
-        checkType(ctx, lhsExpr, lhsType);
-        
-        //Push the new expression into the stack
-        //remove unused expression
-        stack.pop();
-        String newExpr 
-        	= (lhsExpr+binaryOp+rhsExpr).replaceAll("\\s","");
-        stack.push(newExpr);
-        stack.push(returnType);
-        printStack();
     }
 
     public Void visitBrackets(WACCParser.BracketsContext ctx) {

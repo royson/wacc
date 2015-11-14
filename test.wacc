@@ -1,19 +1,18 @@
-# find the min of two numbers
+# evaluating string equality
 
 # Output:
-# min value = 10
+# true
+# false
+# false
 
 # Program:
 
 begin
-  int i = 0 ;
-  int x = 10 ;
-  int y = 17 ;
-  while y > 0 && x > 0 do
-    x = x - 1 ;
-    y = y - 1 ;
-    i = i + 1
-  done ;
-  print "min value = " ;
-  println i
+  string s1 = "Hello" ;
+  string s2 = "foo" ;
+  string s3 = "foo" ;
+  bool b = s1 == s1 ;
+  println b ;
+  println s1 == s2 ;
+  println s2 == s3
 end
