@@ -211,18 +211,24 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Return statement");
             contextDepth(ctx);
         }
-        String functionName = stack.pop();
-        FUNCTION curFunc = (FUNCTION) currentST
-                        .lookupAll(functionName);
-
-        visit(ctx.expr());
-
-        String type = stack.pop();
-        String varname = stack.pop();
-
-        if (!curFunc.getType().equals(type)) {
-            stack.push(curFunc.getType());
-            checkType(ctx, varname, type);
+        
+        if(stack.isEmpty()){
+          //returning from main program
+          semanticError(ctx, "Cannot return from the global scope.");
+        }else{
+            String functionName = stack.pop();
+            FUNCTION curFunc = (FUNCTION) currentST
+                            .lookupAll(functionName);
+    
+            visit(ctx.expr());
+    
+            String type = stack.pop();
+            String varname = stack.pop();
+    
+            if (!curFunc.getType().equals(type)) {
+                stack.push(curFunc.getType());
+                checkType(ctx, varname, type);
+            }
         }
 
         return null;
@@ -233,7 +239,16 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Exit statement");
             contextDepth(ctx);
         }
-        return visitChildren(ctx);
+        
+        visit(ctx.expr());
+        printStack();
+        String exprType = stack.pop();
+        String exprCode = stack.pop();
+        //exit code must be 0-256
+        stack.push(INT);
+        checkType(ctx.expr(),exprCode,exprType);
+        
+        return null;
     }
 
     public Void visitPrintstatement(

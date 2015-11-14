@@ -1,4 +1,4 @@
-# expresission type mismatch bool->int
+# trying to return from the main program
 
 # Output:
 # #semantic_error#
@@ -9,5 +9,6 @@
 # Program:
 
 begin
-  int x = true + false
+  return 42 ;
+  println "should not get here" 
 end
