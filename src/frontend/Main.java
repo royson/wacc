@@ -37,9 +37,6 @@ public class Main {
 		ParseTree tree = parser.program();
 		SyntaxVisitor synVisitor = new SyntaxVisitor();
 		synVisitor.visit(tree);
-		
-        SemanticVisitor semVisitor = new SemanticVisitor();
-        semVisitor.visit(tree);
 
 		// -----------Syntax error-----------
 		// syntaxErrorCount - Consists of errors found by the parser
@@ -54,6 +51,9 @@ public class Main {
 			System.out.println("#syntax error#");
 			System.exit(100);
 		}
+		
+        SemanticVisitor semVisitor = new SemanticVisitor();
+        semVisitor.visit(tree);
 
         // -----------Semantic error-----------
 //        int semanticErrorCount = 0;
