@@ -33,8 +33,6 @@ public class Main {
         parser.removeErrorListeners();
         parser.addErrorListener(new WACCErrorListener());
 
-        
-
 		ParseTree tree = parser.program();
 		SyntaxVisitor synVisitor = new SyntaxVisitor();
 		synVisitor.visit(tree);

@@ -1,15 +1,19 @@
 package frontend;
 
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Stack;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
-import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
-import semantics.*;
+import semantics.FUNCTION;
+import semantics.IDENTIFIER;
+import semantics.PAIR;
+import semantics.PARAM;
+import semantics.SymbolTable;
+import semantics.VARIABLE;
 import antlr.WACCParser;
 import antlr.WACCParserBaseVisitor;
 
@@ -75,6 +79,31 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             errorMessage += " (expected: " + compareType;
             errorMessage += ", actual: " + type + ")";
             semanticError(ctx, errorMessage);
+        }
+    }
+    
+    private void checkMultipleTypes(ParserRuleContext ctx, String value,
+        String type) {
+      	//types are separated by commas
+        if (stack.isEmpty()) {
+          	if (DEBUG) {
+          	  	System.out.println("Something ridiculous that we will know");
+          		}
+          	return;
+        }
+        String compareTypes = stack.pop();
+        boolean semErr = true;
+        List<String> typesList = Arrays.asList(compareTypes.split("\\s*,\\s*"));
+        for(String compareType : typesList ){
+          if (type.equals(compareType)) {
+        	semErr = false;
+          }
+        }
+        if(semErr){
+          String errorMessage = "Incompatible type at " + value;
+          errorMessage += " (expected: " + Arrays.toString(typesList.toArray());
+          errorMessage += ", actual: " + type + ")";
+          semanticError(ctx, errorMessage);
         }
     }
 
@@ -559,16 +588,52 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         }
         // Visit LHS
         visit(ctx.expr(0));
-
+        
         // Visit RHS
         visit(ctx.expr(1));
-
         String rhsType = stack.pop();
-        String rhsVarName = stack.pop();
-
-        checkType(ctx.expr(1), rhsVarName, rhsType);
+        String rhsExpr = stack.pop();
         
-        stack.push(rhsType);
+        //check if both argument types are the same
+        checkType(ctx.expr(1), rhsExpr, rhsType);
+        
+        String binaryOp = ctx.BINARYOP().toString();
+        
+        //check if rhsType match with operator's requirement
+        switch(binaryOp){
+        	case "*":
+        	case "/":
+        	case "%":
+        	case " + ":
+        	case " - ":
+        	  stack.push(INT);
+        	  checkType(ctx.expr(1), rhsExpr, rhsType);
+        	  stack.push(rhsType);
+        	  break;
+        	case ">":
+        	case ">=":
+        	case "<": 
+        	case "<=":
+        	  stack.push(CHAR+","+INT);
+        	  checkMultipleTypes(ctx.expr(1),rhsExpr, rhsType);
+        	  stack.push(BOOL);
+        	  break;
+        	case "&&":
+        	case "||":
+        	  stack.push(BOOL);
+        	  checkType(ctx.expr(1), rhsExpr, rhsType);
+        	case "==":
+        	case "!=":
+        	  stack.push(BOOL);
+        	  break;
+        }
+        
+        
+        //Push the new expression into the stack
+        String lhsExpr = stack.pop();
+        String newExpr 
+        	= (lhsExpr+binaryOp+rhsExpr).replaceAll("\\s","");
+        stack.push(newExpr);
 
         return null;
     }
@@ -647,7 +712,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             visit(ctx.param_list());
         }
 
-        visit(ctx.stat());
+        visit(ctx.funcStat());
 
         currentST = st.getEncSymTable();
 

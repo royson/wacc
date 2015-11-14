@@ -1,4 +1,4 @@
-# true typo
+# expresission type mismatch bool->int
 
 # Output:
 # #semantic_error#
@@ -9,7 +9,5 @@
 # Program:
 
 begin
-  while tru do
-    skip
-  done
+  int x = true + false
 end
