@@ -397,6 +397,23 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         }
         return visitChildren(ctx);
     }
+    
+    public Void visitArrayLiter(WACCParser.ArrayLiterContext ctx){
+      if (DEBUG) {
+        System.out.print("-Assign ArrayLiter ");
+        contextDepth(ctx);
+      }      
+      
+      List<ExprContext> exprs = ctx.expr();
+      if(!exprs.isEmpty()){
+    	  for(ExprContext ectx : exprs){
+    		  //Populate the stack with names and types
+    		  visit(ectx);
+    	  }
+      }
+      
+      return null;
+    }
 
     public Void visitAssignrhsnewpair(
                     WACCParser.AssignrhsnewpairContext ctx) {
@@ -776,7 +793,6 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         
         FUNCTION curFunc = (FUNCTION) obj;
 
-        System.out.println("CHILDREN COUNT: " + ctx.param().size());
         curFunc.setParamSize(ctx.param().size());
 
         return visitChildren(ctx);

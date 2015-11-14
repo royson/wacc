@@ -1,4 +1,4 @@
-# function parameter type mismatch
+# program performs binary operations on arrays.
 
 # Output:
 # #semantic_error#
@@ -9,10 +9,7 @@
 # Program:
 
 begin
-  int f(int x, int y) is
-    return x
-  end
-  bool b = true ; 
-  int x = call f(b) 
+  int[] x = [1,2];
+  int[] y = [3,4];
+  println x > y
 end
-  
