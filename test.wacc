@@ -1,4 +1,4 @@
-# if condition type mismatch
+# true typo
 
 # Output:
 # #semantic_error#
@@ -9,10 +9,7 @@
 # Program:
 
 begin
-  int x = 5 ; 
-  if x then 
-    skip 
-  else 
+  while tru do
     skip
-  fi
+  done
 end

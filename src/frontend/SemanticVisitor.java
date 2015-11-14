@@ -20,9 +20,17 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
     private SymbolTable<String, IDENTIFIER> currentST;
     private Stack<String> stack = new Stack<String>();
-    private String[] primitiveTypes = { "INT", "BOOL", "CHAR",
-                    "CHAR[]" };
 
+    private final static String INT = "INT";
+    private final static String BOOL = "BOOL";
+    private final static String CHAR = "CHAR";
+    private final static String STRING = "CHAR[]";
+    
+    private String[] primitiveTypes = { INT, BOOL, CHAR,
+                    STRING };
+
+
+    
     private boolean DEBUG = true;
 
     /* Helper functions */
@@ -34,7 +42,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     }
 
     private String renameStringToCharArray(String s) {
-        return s.equals("STRING") ? "CHAR[]" : s;
+        return s.equals("STRING") ? STRING : s;
     }
 
     private void semanticError(ParserRuleContext ctx,
@@ -62,7 +70,6 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             }
             return;
         }
-
         String compareType = stack.pop();
 
         if (!compareType.equals(type)) {
@@ -150,7 +157,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
         // Only char and integers are allowed.
         System.out.println("READ TYPE IS : " + readType);
-        if (!readType.equals("INT") || !readType.equals("CHAR")) {
+        if (!readType.equals(INT) || !readType.equals(CHAR)) {
             semanticError(ctx, "Incompatible type " + readType);
         }
         return null;
@@ -229,13 +236,16 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-If statement");
             contextDepth(ctx);
         }
-        //TODO: Fix the if statement
+        
         visit(ctx.expr());
+        
         String ifExprType = stack.pop();
         stack.pop();
         
-        stack.push("BOOL");
-        checkType(ctx.expr(),ctx.expr().getText(),ifExprType);
+        //Check if the condition is a BOOL
+        stack.push(BOOL);
+        String condition = ctx.expr().getText().replaceAll("\\s","");
+        checkType(ctx.expr(),condition,ifExprType);
         
         visit(ctx.stat(0));
         visit(ctx.stat(1));
@@ -248,7 +258,19 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-While statement");
             contextDepth(ctx);
         }
-        return visitChildren(ctx);
+        visit(ctx.expr());
+        
+        String whileExprType = stack.pop();
+        stack.pop();
+        
+        //Check if the condition is a BOOL
+        stack.push(BOOL);
+        String condition = ctx.expr().getText().replaceAll("\\s","");
+        checkType(ctx.expr(),condition,whileExprType);
+        
+        visit(ctx.stat());
+        
+        return null;
     }
 
     public Void visitBeginendstatement(
@@ -461,7 +483,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             contextDepth(ctx);
         }
         stack.push(ctx.INTLITERAL().toString());
-        stack.push("INT");
+        stack.push(INT);
         return null;
     }
 
@@ -472,7 +494,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             contextDepth(ctx);
         }
         stack.push(ctx.BOOLEANLITERAL().toString());
-        stack.push("BOOL");
+        stack.push(BOOL);
         return null;
     }
 
@@ -482,7 +504,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             contextDepth(ctx);
         }
         stack.push(ctx.CHARLITERAL().toString());
-        stack.push("CHAR");
+        stack.push(CHAR);
         return null;
     }
 
@@ -492,7 +514,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             contextDepth(ctx);
         }
         stack.push(ctx.STRINGLITERAL().toString());
-        stack.push("CHAR[]");
+        stack.push(STRING);
         return null;
     }
 
