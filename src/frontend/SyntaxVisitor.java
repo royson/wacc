@@ -1,10 +1,15 @@
 package frontend;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.antlr.v4.runtime.ParserRuleContext;
+
 import antlr.WACCParser;
 import antlr.WACCParserBaseVisitor;
 
 public class SyntaxVisitor extends WACCParserBaseVisitor<Void> {
+    private List<String> errorMessages = new ArrayList<String>();
     private int syntaxErrorCount = 0;
     private boolean inFunction = false;
     private boolean returnExitFound = false;
@@ -15,9 +20,13 @@ public class SyntaxVisitor extends WACCParserBaseVisitor<Void> {
                     String errorMessage) {
         int line = ctx.getStart().getLine();
         int pos = ctx.getStart().getCharPositionInLine();
-        System.err.println("Syntatic Error at " + line + ":" + pos
+        errorMessages.add("Syntatic Error at " + line + ":" + pos
                         + " -- " + errorMessage);
         syntaxErrorCount++;
+    }
+    
+    public List<String> getErrorMessages() {
+        return errorMessages;
     }
 
     // Visit program
