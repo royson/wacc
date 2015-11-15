@@ -19,25 +19,6 @@ public class SyntaxVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Program");
         }
-        int childCount = ctx.getChildCount();
-        for (int i = 0; i < childCount; i++) {
-            if (i != 0) {
-                String expectBegins = ctx.getChild(i).toString();
-                if (expectBegins.equals("begin")) {
-                    Token endToken = (Token) ctx.getChild(i)
-                                    .getPayload();
-                    int line = endToken.getLine();
-                    int pos = endToken.getCharPositionInLine();
-                    String errorMessage = "mismatched input '"
-                                    + expectBegins
-                                    + "' expecting <EOF>";
-                    System.err.println("Syntatic Error at " + line
-                                    + ":" + pos + " -- "
-                                    + errorMessage);
-                    syntaxErrorCount++;
-                }
-            }
-        }
         return visitChildren(ctx);
     }
 

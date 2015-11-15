@@ -40,7 +40,7 @@ expr: INTLITERAL            #integerliteral
 
 arrayElem : IDENT (LBRACK expr RBRACK)+;
 
-program: (BEGIN (func)* (stat) END)* EOF;
+program: (BEGIN (func)* (stat) END)? EOF;
 
 func: type IDENT LPAREN param_list? RPAREN IS stat END;
 
