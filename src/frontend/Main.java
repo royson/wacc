@@ -55,13 +55,5 @@ public class Main {
         SemanticVisitor semVisitor = new SemanticVisitor();
         semVisitor.visit(tree);
 
-        // -----------Semantic error-----------
-//        int semanticErrorCount = 0;
-//        if (semanticErrorCount > 0) {
-//            System.err.println("Found " + semanticErrorCount
-//                            + " semantic errors(s)");
-//            System.out.println("#semantic error#");
-//            System.exit(200);
-//        }
     }
 }

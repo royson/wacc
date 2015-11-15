@@ -1,13 +1,10 @@
 package frontend;
 
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.Token;
-
 import antlr.WACCParser;
 import antlr.WACCParserBaseVisitor;
 
 public class SyntaxVisitor extends WACCParserBaseVisitor<Void> {
-    // TODO: Refactor the syntax error nicely
     private int syntaxErrorCount = 0;
     private boolean inFunction = false;
     private boolean returnExitFound = false;
