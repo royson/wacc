@@ -7,13 +7,22 @@ import antlr.WACCParser;
 import antlr.WACCParserBaseVisitor;
 
 public class SyntaxVisitor extends WACCParserBaseVisitor<Void> {
-    //TODO: Refactor the syntax error nicely
+    // TODO: Refactor the syntax error nicely
     private int syntaxErrorCount = 0;
     private boolean inFunction = false;
     private boolean returnExitFound = false;
 
     private boolean DEBUG = false;
-    
+
+    private void syntaxError(ParserRuleContext ctx,
+                    String errorMessage) {
+        int line = ctx.getStart().getLine();
+        int pos = ctx.getStart().getCharPositionInLine();
+        System.err.println("Syntatic Error at " + line + ":" + pos
+                        + " -- " + errorMessage);
+        syntaxErrorCount++;
+    }
+
     // Visit program
     public Void visitProgram(WACCParser.ProgramContext ctx) {
         if (DEBUG) {
@@ -30,14 +39,10 @@ public class SyntaxVisitor extends WACCParserBaseVisitor<Void> {
         inFunction = true;
         visitChildren(ctx);
         if (!returnExitFound) {
-            int line = ctx.getStart().getLine();
-            int pos = ctx.getStart().getCharPositionInLine();
             String errorMessage = "Function "
                             + ctx.IDENT().toString()
                             + " is not ended with a return or an exit statement.";
-            System.err.println("Syntatic Error at " + line + ":"
-                            + pos + " -- " + errorMessage);
-            syntaxErrorCount++;
+            syntaxError(ctx, errorMessage);
         }
         returnExitFound = false;
         inFunction = false;
@@ -54,15 +59,15 @@ public class SyntaxVisitor extends WACCParserBaseVisitor<Void> {
             visit(ctx.IF());
             visit(ctx.expr());
             visit(ctx.THEN());
-            
+
             returnExitFound = false;
             visit(ctx.stat(0));
 
             visit(ctx.ELSE());
-            
+
             returnExitFound = false;
             visit(ctx.stat(1));
-            
+
             visit(ctx.FI());
         } else {
             visitChildren(ctx);
@@ -100,12 +105,11 @@ public class SyntaxVisitor extends WACCParserBaseVisitor<Void> {
             Integer value = Integer.parseInt(ctx.getChild(0)
                             .getText());
         } catch (NumberFormatException e) {
-            System.err.println("Integer value "
-                            + ctx.getStart().getText() + " on line "
-                            + ctx.getStart().getLine()
+            String errorMessage = "Integer value "
+                            + ctx.getStart().getText()
                             + " is too large "
-                            + "for a 32-bit signed integer");
-            syntaxErrorCount++;
+                            + "for a 32-bit signed integer";
+            syntaxError(ctx, errorMessage);
         }
         return null;
     }
