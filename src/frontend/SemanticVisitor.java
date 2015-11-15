@@ -28,11 +28,10 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     private final static String BOOL = "BOOL";
     private final static String CHAR = "CHAR";
     private final static String STRING = "CHAR[]";
-    
-    private String[] primitiveTypes = { INT, BOOL, CHAR,
-                    STRING };
-    
-    private boolean DEBUG = true;
+
+    private String[] primitiveTypes = { INT, BOOL, CHAR, STRING };
+
+    private boolean DEBUG = false;
 
     /* Helper functions */
 
@@ -45,60 +44,60 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     private String renameStringToCharArray(String s) {
         return s.equals("STRING") ? STRING : s;
     }
-    
+
     private void visitBinaryoperator(ParserRuleContext ctx,
-  	  String binaryOp, ParserRuleContext lhs, ParserRuleContext rhs) {
-    	if (DEBUG) {
-    	  System.out.print("-Binary operator ");
-    	  contextDepth(ctx);
-    	}
-    	;
-    	// Visit LHS
-    	visit(lhs);
-    
-    	String lhsType = stack.pop();
-    
-    	// Visit RHS
-    	visit(rhs);
-    
-    	String rhsType = stack.pop();
-    	String rhsExpr = stack.pop();
-    
-    	// check arguments for binary operation
-    	String lhsExpr = stack.peek();
-    	String returnType = checkBinaryOpArgument(ctx,lhs, binaryOp, lhsExpr,
-    		lhsType);
-    	returnType = checkBinaryOpArgument(ctx,rhs, binaryOp, rhsExpr,
-    		rhsType);
-    
-    	// check if both argument types are the same
-    	// mainly for '>' '>=' '<=' '<' cases
-    	stack.push(rhsType);
-    	checkType(ctx, lhsExpr, lhsType);
-    
-    	// Push the new expression into the stack
-    	// remove unused expression
-    	stack.pop();
-    	String newExpr = (lhsExpr + binaryOp + rhsExpr).replaceAll("\\s",
-    		"");
-    	stack.push(newExpr);
-    	stack.push(returnType);
+                    String binaryOp, ParserRuleContext lhs,
+                    ParserRuleContext rhs) {
+        if (DEBUG) {
+            System.out.print("-Binary operator ");
+            contextDepth(ctx);
+        }
+        // Visit LHS
+        visit(lhs);
+
+        String lhsType = stack.pop();
+
+        // Visit RHS
+        visit(rhs);
+
+        String rhsType = stack.pop();
+        String rhsExpr = stack.pop();
+
+        // check arguments for binary operation
+        String lhsExpr = stack.peek();
+        String returnType = checkBinaryOpArgument(ctx, lhs, binaryOp,
+                        lhsExpr, lhsType);
+        returnType = checkBinaryOpArgument(ctx, rhs, binaryOp,
+                        rhsExpr, rhsType);
+
+        // check if both argument types are the same
+        // mainly for '>' '>=' '<=' '<' cases
+        stack.push(rhsType);
+        checkType(ctx, lhsExpr, lhsType);
+
+        // Push the new expression into the stack
+        // remove unused expression
+        stack.pop();
+        String newExpr = (lhsExpr + binaryOp + rhsExpr).replaceAll(
+                        "\\s", "");
+        stack.push(newExpr);
+        stack.push(returnType);
     }
-    
-    private void checkBinaryOpType(ParserRuleContext ctx, String type){
-      if(!(Arrays.asList(primitiveTypes).contains(type))){
-          semanticError(ctx,"Incompatible type " +type);
-      }
+
+    private void checkBinaryOpType(ParserRuleContext ctx, String type) {
+        if (!(Arrays.asList(primitiveTypes).contains(type))) {
+            semanticError(ctx, "Incompatible type " + type);
+        }
     }
-    
-    private void newScope(){
-       SymbolTable<String, IDENTIFIER> st 
-       		= new SymbolTable<String, IDENTIFIER>(currentST);
-       currentST = st;
+
+    private void newScope() {
+        SymbolTable<String, IDENTIFIER> st = new SymbolTable<String, IDENTIFIER>(
+                        currentST);
+        currentST = st;
     }
-    
-    private void freeScope(){
-      	currentST = currentST.getEncSymTable();
+
+    private void freeScope() {
+        currentST = currentST.getEncSymTable();
     }
 
     private void semanticError(ParserRuleContext ctx,
@@ -114,61 +113,63 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     }
 
     private void contextDepth(ParserRuleContext ctx) {
-        System.out.println(ctx.depth() + " " + ctx.getChildCount()
-                        + " " + ctx);
+        // System.out.println(ctx.depth() + " " + ctx.getChildCount()
+        // + " " + ctx);
+        System.out.println("");
     }
-    
-    private String checkBinaryOpArgument(ParserRuleContext ctx, 
-    	ParserRuleContext ectx, 
-    	String binaryOp, String binaryExpr, String binaryType){
-      String returnType = "";
-      
-      //check if rhsType match with operator's requirement
-      switch(binaryOp){
-      	case "*":
-      	case "/":
-      	case "%":
-      	case " + ":
-      	case " - ":
-      	  stack.push(INT);
-      	  checkType(ectx, binaryExpr, binaryType);
-      	  checkBinaryOpType(ctx, binaryType);
-      	  returnType = binaryType;
-      	  break;
-      	case ">":
-      	case ">=":
-      	case "<": 
-      	case "<=":
-      	  if(!binaryType.equals(INT) && !binaryType.equals(CHAR)){
-      		stack.push(INT);
-      		checkType(ectx, binaryExpr, binaryType);
-      		checkBinaryOpType(ctx, binaryType);
-      	  }
-      	  returnType = BOOL;
-      	  break;
-      	case "&&":
-      	case "||":
-      	  stack.push(BOOL);
-      	  checkType(ectx, binaryExpr, binaryType);
-      	  checkBinaryOpType(ctx, binaryType);
-      	case "==":
-      	case "!=":
-      	  returnType = BOOL;
-      	  break;
-      }
-      
-      return returnType;
+
+    private String checkBinaryOpArgument(ParserRuleContext ctx,
+                    ParserRuleContext ectx, String binaryOp,
+                    String binaryExpr, String binaryType) {
+        String returnType = "";
+
+        // check if rhsType match with operator's requirement
+        switch (binaryOp) {
+        case "*":
+        case "/":
+        case "%":
+        case " + ":
+        case " - ":
+            stack.push(INT);
+            checkType(ectx, binaryExpr, binaryType);
+            checkBinaryOpType(ctx, binaryType);
+            returnType = binaryType;
+            break;
+        case ">":
+        case ">=":
+        case "<":
+        case "<=":
+            if (!binaryType.equals(INT) && !binaryType.equals(CHAR)) {
+                stack.push(INT);
+                checkType(ectx, binaryExpr, binaryType);
+                checkBinaryOpType(ctx, binaryType);
+            }
+            returnType = BOOL;
+            break;
+        case "&&":
+        case "||":
+            stack.push(BOOL);
+            checkType(ectx, binaryExpr, binaryType);
+            checkBinaryOpType(ctx, binaryType);
+        case "==":
+        case "!=":
+            returnType = BOOL;
+            break;
+        }
+
+        return returnType;
     }
-    
+
     private void checkParameters(ParserRuleContext ctx,
-    	String funcName,int paramSize,int funcSize){
-      		if(paramSize != funcSize){
-      	  		String errorMessage 
-      	  			= "Incorrect number of parameters for "+funcName+
-      	  			" (expected: "+funcSize+", actual: "+paramSize+
-      	  			")";
-      	  			semanticError(ctx,errorMessage);
-      		}
+                    String funcName, int paramSize, int funcSize) {
+        if (paramSize != funcSize) {
+            String errorMessage = "Incorrect number of parameters for "
+                            + funcName
+                            + " (expected: "
+                            + funcSize
+                            + ", actual: " + paramSize + ")";
+            semanticError(ctx, errorMessage);
+        }
     }
 
     private void checkType(ParserRuleContext ctx, String value,
@@ -182,7 +183,8 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         String compareType = stack.pop();
 
         if (!compareType.equals(type)) {
-            String errorMessage = "Incompatible type at " + value.replaceAll("\\s","");
+            String errorMessage = "Incompatible type at "
+                            + value.replaceAll("\\s", "");
             errorMessage += " (expected: " + compareType;
             errorMessage += ", actual: " + type + ")";
             semanticError(ctx, errorMessage);
@@ -193,12 +195,12 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         String curIdentToCheck = stack.peek();
 
         IDENTIFIER object = currentST.lookupAll(curIdentToCheck);
-        
+
         // Variable is not declared
         if (object == null || object instanceof FUNCTION) {
-              String errorMessage = "Variable " + curIdentToCheck
-                              + " is not defined in this scope";
-              semanticError(ctx, errorMessage);
+            String errorMessage = "Variable " + curIdentToCheck
+                            + " is not defined in this scope";
+            semanticError(ctx, errorMessage);
         }
         return object.getType();
     }
@@ -213,35 +215,37 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             contextDepth(ctx);
         }
         currentST = new SymbolTable<String, IDENTIFIER>();
-        
+
         List<FuncContext> funcList = ctx.func();
-        for(FuncContext f : funcList){
+        for (FuncContext f : funcList) {
             String functionName = f.IDENT().toString();
-            
+
             IDENTIFIER object = currentST.lookupAll(functionName);
             if (object != null) {
-                semanticError(ctx, "\"" + functionName
-                                + "\" is already defined in this scope");
+                semanticError(ctx,
+                                "\""
+                                                + functionName
+                                                + "\" is already defined in this scope");
             }
-            
+
             visit(f.type());
-  
+
             String functionReturnType = stack.pop();
             FUNCTION newFunc = new FUNCTION(functionReturnType);
-            
+
             currentST.add(functionName, newFunc);
-            
+
             stack.push(functionName);
-            
+
             if (f.param_list() != null) {
-              visit(f.param_list());
+                visit(f.param_list());
             }
-            
-            //clear functionName from the stack
+
+            // clear functionName from the stack
             stack.pop();
-            
+
         }
-        
+
         return visitChildren(ctx);
     }
 
@@ -265,14 +269,14 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         visit(ctx.type());
 
         String varType = stack.peek();
-        //TODO: Convert to array implementation
+        // TODO: Convert to array implementation
         if (!varType.startsWith("Pair")) {
-            currentST.add(ctx.IDENT().toString(),
-                            new VARIABLE(varType));
+            currentST.add(ctx.IDENT().toString(), new VARIABLE(
+                            varType));
         }
-        
+
         visit(ctx.assignRHS());
-        
+
         return null;
     }
 
@@ -323,20 +327,20 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Return statement");
             contextDepth(ctx);
         }
-        
-        if(currentST.getEncSymTable() == null){
-          //returning from main program
-          semanticError(ctx, "Cannot return from the global scope.");
-        }else{
+
+        if (currentST.getEncSymTable() == null) {
+            // returning from main program
+            semanticError(ctx, "Cannot return from the global scope.");
+        } else {
             String functionName = stack.pop();
             FUNCTION curFunc = (FUNCTION) currentST
                             .lookupAll(functionName);
-    
+
             visit(ctx.expr());
-    
+
             String type = stack.pop();
             String varname = stack.pop();
-    
+
             if (!curFunc.getType().equals(type)) {
                 stack.push(curFunc.getType());
                 checkType(ctx, varname, type);
@@ -351,15 +355,15 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Exit statement");
             contextDepth(ctx);
         }
-        
+
         visit(ctx.expr());
 
         String exprType = stack.pop();
         String exprCode = stack.pop();
-        //exit code must be 0-256
+        // exit code must be 0-256
         stack.push(INT);
-        checkType(ctx.expr(),exprCode,exprType);
-        
+        checkType(ctx.expr(), exprCode, exprType);
+
         return null;
     }
 
@@ -369,7 +373,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Print statement");
             contextDepth(ctx);
         }
-        
+
         visit(ctx.expr());
         stack.pop();
         stack.pop();
@@ -394,22 +398,22 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-If statement");
             contextDepth(ctx);
         }
-        
+
         visit(ctx.expr());
-        
+
         String ifExprType = stack.pop();
         stack.pop();
-        
-        //Check if the condition is a BOOL
+
+        // Check if the condition is a BOOL
         stack.push(BOOL);
         String condition = ctx.expr().getText();
-        checkType(ctx.expr(),condition,ifExprType);
-  
-        //giving a new scope for each stat
-        for(int x = 0; x < 2; x++){
-          newScope();
-          visit(ctx.stat(x));
-          freeScope();
+        checkType(ctx.expr(), condition, ifExprType);
+
+        // giving a new scope for each stat
+        for (int x = 0; x < 2; x++) {
+            newScope();
+            visit(ctx.stat(x));
+            freeScope();
         }
         return null;
     }
@@ -421,19 +425,19 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             contextDepth(ctx);
         }
         visit(ctx.expr());
-        
+
         String whileExprType = stack.pop();
         stack.pop();
-        
-        //Check if the condition is a BOOL
+
+        // Check if the condition is a BOOL
         stack.push(BOOL);
         String condition = ctx.expr().getText();
-        checkType(ctx.expr(),condition,whileExprType);
-        
+        checkType(ctx.expr(), condition, whileExprType);
+
         newScope();
         visit(ctx.stat());
         freeScope();
-        
+
         return null;
     }
 
@@ -443,11 +447,11 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Begin end statement");
             contextDepth(ctx);
         }
-        
+
         newScope();
         visit(ctx.stat());
         freeScope();
-        
+
         return null;
     }
 
@@ -469,17 +473,17 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Assign RHS EXPR ");
             contextDepth(ctx);
         }
-        
+
         visit(ctx.expr());
-        
+
         String type = stack.pop();
         String varname = stack.pop();
-        
+
         checkType(ctx, varname, type);
-        
-        //clear unused name from stack
+
+        // clear unused name from stack
         stack.pop();
-        
+
         return null;
     }
 
@@ -491,23 +495,23 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         }
         return visitChildren(ctx);
     }
-    
-    public Void visitArrayLiter(WACCParser.ArrayLiterContext ctx){
-      if (DEBUG) {
-        System.out.print("-Assign ArrayLiter ");
-        contextDepth(ctx);
-      }      
-      
-      //TODO: Implement array
-      List<ExprContext> exprs = ctx.expr();
-      
-      for(ExprContext ectx : exprs){
-    	//Populate the stack with names and types
-    	visit(ectx);
-    	
-      }
-      
-      return null;
+
+    public Void visitArrayLiter(WACCParser.ArrayLiterContext ctx) {
+        if (DEBUG) {
+            System.out.print("-Assign ArrayLiter ");
+            contextDepth(ctx);
+        }
+
+        // TODO: Implement array
+        List<ExprContext> exprs = ctx.expr();
+
+        for (ExprContext ectx : exprs) {
+            // Populate the stack with names and types
+            visit(ectx);
+
+        }
+
+        return null;
     }
 
     public Void visitAssignrhsnewpair(
@@ -519,15 +523,14 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         visit(ctx.expr(0)); // Visit fst
         visit(ctx.expr(1)); // Visit snd
 
-        printStack();
         String sndType = stack.pop();
-        String sndVarname = stack.pop();
+        String sndVarName = stack.pop();
         String fstType = stack.pop();
-        String fstVarname = stack.pop();
+        String fstVarName = stack.pop();
         PAIR comparePair = new PAIR(fstType, sndType);
-        printStack();
-        checkType(ctx, "newpair(" + fstVarname + "," + sndVarname
-                        + ")", comparePair.toString());
+
+        checkType(ctx, "Pair(" + fstVarName + "," + sndVarName + ")",
+                        comparePair.toString());
         return null;
     }
 
@@ -540,43 +543,44 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         visit(ctx.pairElem());
         return null;
     }
-    
-    public Void visitArg_list(WACCParser.Arg_listContext ctx){
-      if (DEBUG) {
-        System.out.print("-ArgList call ");
-        contextDepth(ctx);
-      }
-      
-      String funcName = stack.pop();
-      
-      IDENTIFIER obj = currentST.lookupAll(funcName);
-      if(!(obj instanceof FUNCTION)){
-    	  semanticError(ctx,"Something went wrong.");
-      }
-      
-      FUNCTION func = (FUNCTION) obj;
-      
-      //List of args
-      List<ExprContext> args = ctx.expr();
-      
-      checkParameters(ctx.getParent(),funcName,ctx.expr().size(),func.getParamSize());
-      
-      if(!(ctx.expr().isEmpty())){
-    	int i = 0;
-    	  for(ExprContext ectx : args){
-    		  visit(ectx);
-    		  String argType = stack.pop();
-    		  String argName = stack.pop();
-    		  
-    		  PARAM p = func.getParam(i);
-    		  stack.push(p.getType());
-    		  checkType(ectx, argName, argType);
-    		  
-    		  i++;
-    	  }
-      }
-      
-      return null;
+
+    public Void visitArg_list(WACCParser.Arg_listContext ctx) {
+        if (DEBUG) {
+            System.out.print("-ArgList call ");
+            contextDepth(ctx);
+        }
+
+        String funcName = stack.pop();
+
+        IDENTIFIER obj = currentST.lookupAll(funcName);
+        if (!(obj instanceof FUNCTION)) {
+            semanticError(ctx, "Something went wrong.");
+        }
+
+        FUNCTION func = (FUNCTION) obj;
+
+        // List of args
+        List<ExprContext> args = ctx.expr();
+
+        checkParameters(ctx.getParent(), funcName, ctx.expr().size(),
+                        func.getParamSize());
+
+        if (!(ctx.expr().isEmpty())) {
+            int i = 0;
+            for (ExprContext ectx : args) {
+                visit(ectx);
+                String argType = stack.pop();
+                String argName = stack.pop();
+
+                PARAM p = func.getParam(i);
+                stack.push(p.getType());
+                checkType(ectx, argName, argType);
+
+                i++;
+            }
+        }
+
+        return null;
     }
 
     public Void visitAssignrhscall(WACCParser.AssignrhscallContext ctx) {
@@ -584,28 +588,27 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Assign RHS call ");
             contextDepth(ctx);
         }
-        
+
         String func = ctx.IDENT().toString();
-        
+
         IDENTIFIER obj = currentST.lookupAll(func);
-        
-        if(obj == null){
-          stack.push(func);
-          checkDefinedVariable(ctx);
+
+        if (obj == null) {
+            stack.push(func);
+            checkDefinedVariable(ctx);
+        } else if (!(obj instanceof FUNCTION)) {
+            semanticError(ctx, "\"" + func + "\" is not a function");
+        } else {
+            checkType(ctx, ctx.getText(), obj.getType());
+
+            // Remove unwanted variable name
+            stack.pop();
+
+            // check the arguments
+            stack.push(func);
+            visit(ctx.arg_list());
         }
-        else if(!(obj instanceof FUNCTION)){
-          semanticError(ctx,"\""+func+"\" is not a function");
-        }else{
-          checkType(ctx,ctx.getText(),obj.getType());
-          
-          //Remove unwanted variable name
-          stack.pop();
-          
-          //check the arguments
-          stack.push(func);
-          visit(ctx.arg_list());
-        }
-        
+
         return null;
     }
 
@@ -626,21 +629,19 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Assign LHS array elem");
             contextDepth(ctx);
         }
-        //TODO: Convert to array implementation
+        // TODO: Convert to array implementation
         String varName = ctx.arrayElem().getText();
-        String arrName = varName.substring(0, 
-        	varName.indexOf('['));
+        String arrName = varName.substring(0, varName.indexOf('['));
         stack.push(varName);
         System.out.println("---ARR: " + arrName);
         stack.push(arrName);
         stack.push(checkDefinedVariable(ctx));
-        printStack();
         String typeNeeded = stack.pop();
         typeNeeded = typeNeeded.substring(0, typeNeeded.indexOf('['));
-        //remove arrName
+        // remove arrName
         stack.pop();
         stack.push(typeNeeded);
-        
+
         return null;
     }
 
@@ -653,42 +654,42 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         visit(ctx.pairElem());
         return null;
     }
-    
-    public Void visitPairfstelem(WACCParser.PairfstelemContext ctx){
-      if (DEBUG) {
-        System.out.println("-Assign Pair fst Elem");
-        contextDepth(ctx);
+
+    public Void visitPairfstelem(WACCParser.PairfstelemContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Assign Pair fst Elem");
+            contextDepth(ctx);
+        }
+        visit(ctx.expr());
+        visitPairElem(ctx, true);
+        return null;
     }
-      	visit(ctx.expr());
-      	visitPairElem(ctx,true);
-      	return null;
+
+    public Void visitPairsndelem(WACCParser.PairsndelemContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Assign Pair snd Elem");
+            contextDepth(ctx);
+        }
+        visit(ctx.expr());
+        visitPairElem(ctx, false);
+        return null;
     }
-    
-    public Void visitPairsndelem(WACCParser.PairsndelemContext ctx){
-      if (DEBUG) {
-        System.out.println("-Assign Pair snd Elem");
-        contextDepth(ctx);
-    }
-      	visit(ctx.expr());
-    	visitPairElem(ctx,false);
-      	return null;
-    }
-    
-    private void visitPairElem(ParserRuleContext ctx, boolean fst){
-        
-        //type of pair is not needed
-      
-    	stack.pop();
-    	String pairName = stack.peek();
+
+    private void visitPairElem(ParserRuleContext ctx, boolean fst) {
+
+        // type of pair is not needed
+
+        stack.pop();
+        String pairName = stack.peek();
         IDENTIFIER obj = currentST.lookupAll(pairName);
-        if(!(obj instanceof PAIR)){
-          semanticError(ctx,"Something went wrong.");
+        if (!(obj instanceof PAIR)) {
+            semanticError(ctx, "Something went wrong.");
         }
         PAIR pair = (PAIR) obj;
-        if(fst){
-          stack.push(pair.getFstType());
-        }else{
-          stack.push(pair.getSndType());
+        if (fst) {
+            stack.push(pair.getFstType());
+        } else {
+            stack.push(pair.getSndType());
         }
     }
 
@@ -699,20 +700,20 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Type BASETYPE ");
             contextDepth(ctx);
         }
-        
+
         String arrayBrackets = "";
         List<TerminalNode> brackets = ctx.LBRACK();
 
         int i = 0;
-		while (i < brackets.size()) {
-		  arrayBrackets += "[]";
-		  i++;
-		}
-        
-        String curType = ctx.BASETYPE().toString().toUpperCase()
-        				 + arrayBrackets;
-        
-        curType = renameStringToCharArray(curType);
+        while (i < brackets.size()) {
+            arrayBrackets += "[]";
+            i++;
+        }
+
+        String curType = renameStringToCharArray(ctx.BASETYPE()
+                        .toString().toUpperCase());
+        curType += arrayBrackets;
+
         stack.push(curType);
 
         return null;
@@ -731,11 +732,13 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Arraytype ");
             contextDepth(ctx);
         }
-        System.out.println("----------OMG-----------");
-        printStack();
         visit(ctx.type());
-        printStack();
-        
+
+        // Add brackets
+        String arrayType = stack.pop();
+        arrayType += "[]";
+        stack.push(arrayType);
+
         return null;
     }
 
@@ -748,7 +751,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         String curVarName = stack.pop();
         visit(ctx.pairelementype(0));
         visit(ctx.pairelementype(1));
-        
+
         String sndType = stack.pop();
         String fstType = stack.pop();
 
@@ -779,7 +782,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             contextDepth(ctx);
         }
         visit(ctx.arraytype());
-        
+
         return null;
     }
 
@@ -857,7 +860,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         }
         stack.push(ctx.IDENT().toString());
         stack.push(checkDefinedVariable(ctx));
-        
+
         return null;
     }
 
@@ -866,9 +869,35 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Array elements ");
             contextDepth(ctx);
         }
-        
-        //TODO: Implement array implementation
-        return visitChildren(ctx);
+
+        visit(ctx.arrayElem());
+
+        return null;
+    }
+
+    public Void visitArrayElem(WACCParser.ArrayElemContext ctx) {
+        if (DEBUG) {
+            System.out.print("-Arrayelem ");
+            contextDepth(ctx);
+        }
+        String ident = ctx.IDENT().toString();
+        IDENTIFIER object = currentST.lookup(ident);
+
+        // TODO: Need to complete for array
+        // if (!(object instanceof VARIABLE || object instanceof PAIR)) {
+        // System.err.println("Something went wrong");
+        // }
+
+        String arrayElemType = object.getType();
+        if (!(object instanceof PAIR)) {
+            int brackets = ctx.LBRACK().size();
+            arrayElemType = arrayElemType.substring(0,
+                            arrayElemType.length() - brackets * 2);
+        }
+
+        stack.push(ident);
+        stack.push(arrayElemType);
+        return null;
     }
 
     public Void visitUnaryoperator(WACCParser.UnaryoperatorContext ctx) {
@@ -879,73 +908,84 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         visit(ctx.expr());
         String varType = stack.pop();
         String varName = stack.peek();
-        
+
         String unaryOp = ctx.UNARYOP().toString();
-        
-        switch (unaryOp){
-        	case "!":
-        	  stack.push(BOOL);
-        	  checkType(ctx,varName,varType);
-        	  break;
-        	case "-":
-        	  stack.push(INT);
-        	  checkType(ctx,varName,varType);
-        	  break;
-        	case "len":
-        	  //TODO: If NOT ARRAY
-        	  if(varType.equals(BOOL)
-        		  ||varType.equals(CHAR)
-        		  ||varType.equals(INT)){
-        		stack.push("T[]");
-        		checkType(ctx,varName,varType);
-        	  }
-        	  varType = INT;
-        	  break;
-        	case "ord":
-        	  stack.push(CHAR);
-        	  checkType(ctx,varName,varType);
-        	  varType = INT;
-        	  break;
-        	case "chr":
-        	  stack.push(INT);
-        	  checkType(ctx,varName,varType);
-        	  varType = CHAR;
-        	  break;
+
+        switch (unaryOp) {
+        case "!":
+            stack.push(BOOL);
+            checkType(ctx, varName, varType);
+            break;
+        case "-":
+            stack.push(INT);
+            checkType(ctx, varName, varType);
+            break;
+        case "len":
+            // TODO: If NOT ARRAY
+            if (varType.equals(BOOL) || varType.equals(CHAR)
+                            || varType.equals(INT)) {
+                stack.push("T[]");
+                checkType(ctx, varName, varType);
+            }
+            varType = INT;
+            break;
+        case "ord":
+            stack.push(CHAR);
+            checkType(ctx, varName, varType);
+            varType = INT;
+            break;
+        case "chr":
+            stack.push(INT);
+            checkType(ctx, varName, varType);
+            varType = CHAR;
+            break;
         }
-        
+
         stack.push(varType);
-        
+
         return null;
     }
-    
-    public Void visitBinarymultipledivideoperator(WACCParser.BinarymultipledivideoperatorContext ctx){
-      visitBinaryoperator(ctx,ctx.multiplyDivideOp().getText(),ctx.expr(0),ctx.expr(1));
-      return null;
+
+    public Void visitBinarymultipledivideoperator(
+                    WACCParser.BinarymultipledivideoperatorContext ctx) {
+        visitBinaryoperator(ctx, ctx.multiplyDivideOp().getText(),
+                        ctx.expr(0), ctx.expr(1));
+        return null;
     }
-    
-    public Void visitBinaryaddsubtractoperator(WACCParser.BinaryaddsubtractoperatorContext ctx){
-      visitBinaryoperator(ctx,ctx.addSubtractOp().getText(),ctx.expr(0),ctx.expr(1));
-      return null;
+
+    public Void visitBinaryaddsubtractoperator(
+                    WACCParser.BinaryaddsubtractoperatorContext ctx) {
+        visitBinaryoperator(ctx, ctx.addSubtractOp().getText(),
+                        ctx.expr(0), ctx.expr(1));
+        return null;
     }
-    
-    public Void visitBinarycomparatoroperator(WACCParser.BinarycomparatoroperatorContext ctx){
-      visitBinaryoperator(ctx,ctx.comparatorOp().getText(),ctx.expr(0),ctx.expr(1));
-      return null;
+
+    public Void visitBinarycomparatoroperator(
+                    WACCParser.BinarycomparatoroperatorContext ctx) {
+        visitBinaryoperator(ctx, ctx.comparatorOp().getText(),
+                        ctx.expr(0), ctx.expr(1));
+        return null;
     }
-    
-    public Void visitBinaryequalityoperator(WACCParser.BinaryequalityoperatorContext ctx){
-      visitBinaryoperator(ctx,ctx.equalityOp().getText(),ctx.expr(0),ctx.expr(1));
-      return null;
+
+    public Void visitBinaryequalityoperator(
+                    WACCParser.BinaryequalityoperatorContext ctx) {
+        visitBinaryoperator(ctx, ctx.equalityOp().getText(),
+                        ctx.expr(0), ctx.expr(1));
+        return null;
     }
-    
-    public Void visitBinarylogicalandoperator(WACCParser.BinarylogicalandoperatorContext ctx){
-      visitBinaryoperator(ctx,ctx.logicalAndOp().getText(),ctx.expr(0),ctx.expr(1));
-      return null;
+
+    public Void visitBinarylogicalandoperator(
+                    WACCParser.BinarylogicalandoperatorContext ctx) {
+        visitBinaryoperator(ctx, ctx.logicalAndOp().getText(),
+                        ctx.expr(0), ctx.expr(1));
+        return null;
     }
-    
-    public Void visitBinarylogicaloroperator(WACCParser.BinarylogicaloroperatorContext ctx){
-      visitBinaryoperator(ctx,ctx.logicalOrOp().getText(),ctx.expr(0),ctx.expr(1));
-      return null;
+
+    public Void visitBinarylogicaloroperator(
+                    WACCParser.BinarylogicaloroperatorContext ctx) {
+        visitBinaryoperator(ctx, ctx.logicalOrOp().getText(),
+                        ctx.expr(0), ctx.expr(1));
+        return null;
     }
 
     public Void visitBrackets(WACCParser.BracketsContext ctx) {
@@ -965,14 +1005,13 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         }
 
         String functionName = stack.peek();
-        IDENTIFIER obj = currentST
-            .lookupAll(functionName);
+        IDENTIFIER obj = currentST.lookupAll(functionName);
 
-        if(!(obj instanceof FUNCTION)){
-            //semantically never reach
-            semanticError(ctx,"Something went wrong");
+        if (!(obj instanceof FUNCTION)) {
+            // semantically never reach
+            semanticError(ctx, "Something went wrong");
         }
-        
+
         FUNCTION curFunc = (FUNCTION) obj;
 
         curFunc.setParamSize(ctx.param().size());
@@ -986,21 +1025,20 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             contextDepth(ctx);
         }
         String functionName = stack.peek();
-        IDENTIFIER obj = currentST
-                        .lookupAll(functionName);
-        
-        if(!(obj instanceof FUNCTION)){
-          //semantically never reach
-          semanticError(ctx,"Something went wrong");
+        IDENTIFIER obj = currentST.lookupAll(functionName);
+
+        if (!(obj instanceof FUNCTION)) {
+            // semantically never reach
+            semanticError(ctx, "Something went wrong");
         }
-        
+
         FUNCTION curFunc = (FUNCTION) obj;
 
         visit(ctx.type());
         String paramReturnType = stack.pop();
         String paramName = ctx.IDENT().toString();
-        PARAM newParam = new PARAM(paramReturnType,paramName);
-        
+        PARAM newParam = new PARAM(paramReturnType, paramName);
+
         curFunc.addParam(newParam);
 
         return null;
@@ -1019,15 +1057,15 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         FUNCTION func = (FUNCTION) currentST.lookupAll(functionName);
         newScope();
 
-        //Add params in new scope
-        for(int i = 0; i<func.getParamSize(); i++){
-          PARAM param = func.getParam(i);
-          currentST.add(param.getName(), param);
+        // Add params in new scope
+        for (int i = 0; i < func.getParamSize(); i++) {
+            PARAM param = func.getParam(i);
+            currentST.add(param.getName(), param);
         }
 
         visit(ctx.stat());
         freeScope();
-        
+
         return null;
     }
 }
