@@ -84,8 +84,8 @@ assignRHS   : expr                                  #assignrhsexpr
 
 arg_list: expr (COMMA expr)*;
 
-pairElem: FST expr
-        | SND expr
+pairElem: FST expr                                  #pairfstelem
+        | SND expr                                  #pairsndelem
         ;
 
 arrayLiter: LBRACK (expr (COMMA expr)*)? RBRACK;

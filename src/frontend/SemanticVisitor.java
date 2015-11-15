@@ -436,6 +436,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         }
         
         visit(ctx.expr());
+        
         String type = stack.pop();
         String varname = stack.pop();
         
@@ -499,7 +500,8 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Assign RHS pairelem ");
             contextDepth(ctx);
         }
-        return visitChildren(ctx);
+        visit(ctx.pairElem());
+        return null;
     }
     
     public Void visitArg_list(WACCParser.Arg_listContext ctx){
@@ -600,18 +602,56 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         //remove arrName
         stack.pop();
         stack.push(typeNeeded);
-        printStack();
         
         return null;
     }
 
-    public Void visitAssignpairelem(
+    public Void visitAssignlhspairelem(
                     WACCParser.AssignlhspairelemContext ctx) {
         if (DEBUG) {
             System.out.println("-Assign LHS pair elem");
             contextDepth(ctx);
         }
-        return visitChildren(ctx);
+        visit(ctx.pairElem());
+        return null;
+    }
+    
+    public Void visitPairfstelem(WACCParser.PairfstelemContext ctx){
+      if (DEBUG) {
+        System.out.println("-Assign Pair fst Elem");
+        contextDepth(ctx);
+    }
+      	visit(ctx.expr());
+      	visitPairElem(ctx,true);
+      	return null;
+    }
+    
+    public Void visitPairsndelem(WACCParser.PairsndelemContext ctx){
+      if (DEBUG) {
+        System.out.println("-Assign Pair snd Elem");
+        contextDepth(ctx);
+    }
+      	visit(ctx.expr());
+    	visitPairElem(ctx,false);
+      	return null;
+    }
+    
+    private void visitPairElem(ParserRuleContext ctx, boolean fst){
+        
+        //type of pair is not needed
+      
+    	stack.pop();
+    	String pairName = stack.peek();
+        IDENTIFIER obj = currentST.lookupAll(pairName);
+        if(!(obj instanceof PAIR)){
+          semanticError(ctx,"Something went wrong.");
+        }
+        PAIR pair = (PAIR) obj;
+        if(fst){
+          stack.push(pair.getFstType());
+        }else{
+          stack.push(pair.getSndType());
+        }
     }
 
     /* Type */

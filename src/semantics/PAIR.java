@@ -13,5 +13,12 @@ public class PAIR extends IDENTIFIER {
     public String toString() {
         return "Pair(" + fstType + "," + sndType + ")";
     }
-
+    
+    public String getFstType(){
+      return fstType;
+    }
+    
+    public String getSndType(){
+      return sndType;
+    }
 }
