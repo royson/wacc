@@ -82,3 +82,5 @@ pairElem: FST expr                                  #pairfstelem
         ;
 
 arrayLiter: LBRACK (expr (COMMA expr)*)? RBRACK;
+
+unknowns: UNKNOWN+;

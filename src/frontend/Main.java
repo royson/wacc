@@ -24,7 +24,6 @@ public class Main {
 
         // Create a lexer that reads from ANTLRInputStream
         WACCLexer lexer = new WACCLexer(input);
-        lexer.removeErrorListeners();
 
         // Create a buffer of tokens read from the lexer
         CommonTokenStream tokenStream = new CommonTokenStream(lexer);
@@ -45,14 +44,12 @@ public class Main {
         // (parser.getNumberOfSyntaxErrors())
         // +
         // errors found in exceptional cases (visitor.getSyntaxErrorCount())
-        int syntaxErrorCount = synVisitor.getSyntaxErrorCount()
-                        + parser.getNumberOfSyntaxErrors();
-        
         List<? extends ANTLRErrorListener> errorListeners = parser
                         .getErrorListeners();
         List<String> errorMessages = ((WACCErrorListener) errorListeners
                         .get(0)).getErrorMessages();
         errorMessages.addAll(synVisitor.getErrorMessages());
+        int syntaxErrorCount = errorMessages.size();
         
         if (syntaxErrorCount > 0) {
             System.err.println("Errors detected during compilation! Exit code 100 returned.");

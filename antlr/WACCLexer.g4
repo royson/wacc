@@ -100,3 +100,6 @@ LINE_COMMENT    : '#' ~[\r\n]* -> skip;
 
 // Identifier
 IDENT           : [_a-zA-Z][_a-zA-Z0-9]*;
+
+// Unknown
+UNKNOWN         : . ;
