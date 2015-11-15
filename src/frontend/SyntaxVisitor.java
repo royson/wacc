@@ -100,7 +100,7 @@ public class SyntaxVisitor extends WACCParserBaseVisitor<Void> {
     }
 
     // Exit statement
-    public Void visitExitStatement(WACCParser.ExitstatementContext ctx) {
+    public Void visitExitstatement(WACCParser.ExitstatementContext ctx) {
         if (DEBUG) {
             System.out.println("-exit");
         }
