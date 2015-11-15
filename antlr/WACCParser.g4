@@ -14,13 +14,6 @@ pairelementype  : BASETYPE  #pairetbasetype
                 | PAIR      #pairetpair
                 ;
 
-binaryOp : multiplyDivideOp 
-| addSubtractOp 
-| comparatorOp 
-| equalityOp
-| logicalAndOp
-| logicalOrOp;
-
 multiplyDivideOp: TIMES | DIVIDE | MOD;
 addSubtractOp: PLUS | MINUS;
 comparatorOp: LT | LTE | GT | GTE;
@@ -70,7 +63,7 @@ stat: SKIP                              #skipstatement
     | stat SEMI stat                    #statementblock
     ;
 
-assignLHS   : IDENT		#assignlhsident
+assignLHS   : IDENT		    #assignlhsident
             | arrayElem		#assignlhsarrayelem		
             | pairElem		#assignlhspairelem
             ;
