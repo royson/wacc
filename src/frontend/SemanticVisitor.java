@@ -570,7 +570,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         String arrayType = stack.pop();
         String arrayName = stack.pop();
         
-        IDENTIFIER obj = currentST.lookupAll(arrayName);
+        IDENTIFIER obj = currentST.lookUpAllIdentifier(arrayName);
         ARRAY a;
         if(obj != null){
             //Redeclare Array
@@ -581,7 +581,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             a.clear();
         }else{
           a = new ARRAY(arrayType);
-          currentST.add(arrayName, a);
+          currentST.addIdentifier(arrayName, a);
         }
 
         String allowedElemType = stripArrayTypeBracket(arrayType);
