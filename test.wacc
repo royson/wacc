@@ -1,14 +1,14 @@
-# array literals are not first-class expressions
+# a simple function definition and call
 
 # Output:
-# #syntax_error#
-
-# Exit:
-# 100
+# 0
 
 # Program:
 
 begin
-  int[] b = [1, 2, 3] ++ [4] ;
-  println b[3]
+  int f(int f) is
+    int f = 2;
+    return 0 
+  end
+  println 2
 end

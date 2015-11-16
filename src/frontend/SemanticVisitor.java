@@ -8,6 +8,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
+import semantics.ARRAY;
 import semantics.FUNCTION;
 import semantics.IDENTIFIER;
 import semantics.PAIR;
@@ -34,6 +35,54 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     private boolean DEBUG = false;
 
     /* Helper functions */
+    
+    private boolean isAnArray(String s){
+      //STRING is not an array
+      if(s.equals(STRING)) return false;
+      else return (s.endsWith("[]"));
+    }
+    
+    private String stripArrayTypeBracket(String arrayType){
+      //This function returns the types stored in an array
+      //"INT[]" --> "INT"; "INT[][]" --> "INT[]"
+      return arrayType.substring(0, arrayType.length()-2);
+    }
+    
+    //This function checks x in a[x] where arrayElemName is x;
+    private void checkArrayElementVariableName(
+    	String arrayElemName, ParserRuleContext ctx){
+      
+      String typeOfArrayElemName = getPrimitiveType(arrayElemName);
+      if(typeOfArrayElemName == null){
+    	  //ArrayElemName is an object
+    	  stack.push(arrayElemName);
+    	  
+    	  String arrayElemType 
+    	  		= checkDefinedVariable(ctx);
+    	  stack.push(INT);
+    	  checkType(ctx,arrayElemName,arrayElemType);
+    	  
+    	  //arrayElem is not needed in stack
+    	  stack.pop();
+      }else if(!typeOfArrayElemName.equals(INT)){
+    	  stack.push(INT);
+    	  checkType(ctx,arrayElemName,typeOfArrayElemName);
+      }else{
+    	//Pass validation
+      }
+    }
+    
+    private String getPrimitiveType(String s){
+      String int_regex = "-?\\d+";
+      String char_regex = "\'.\'";
+      String bool_regex = "true|false";
+      String string_regex = "\".*\"";
+      if(s.matches(int_regex)) return INT;
+      else if(s.matches(char_regex)) return CHAR;
+      else if(s.matches(bool_regex)) return BOOL;
+      else if(s.matches(string_regex)) return STRING;
+      else return null;
+    }
 
     private void printStack() {
         System.out.println("-----PRINTING STACK-----");
@@ -256,7 +305,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Variable init statement ");
             contextDepth(ctx);
         }
-
+        
         String varName = ctx.IDENT().toString();
 
         // Check for duplicate variable
@@ -269,9 +318,10 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         visit(ctx.type());
 
         String varType = stack.peek();
-        // TODO: Convert to array implementation
-        if (!varType.startsWith("Pair")) {
-            currentST.add(ctx.IDENT().toString(), new VARIABLE(
+        // TODO: Convert to array implementation [DONE]
+        //If variable is not a Pair or Array, create new var object.
+        if (!varType.startsWith("Pair") && !(isAnArray(varType))) {
+          currentST.add(ctx.IDENT().toString(), new VARIABLE(
                             varType));
         }
 
@@ -375,6 +425,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         }
 
         visit(ctx.expr());
+        //Clear the stack
         stack.pop();
         stack.pop();
         return null;
@@ -388,8 +439,11 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         }
 
         visit(ctx.expr());
+        //Clear the stack
         stack.pop();
         stack.pop();
+
+        
         return null;
     }
 
@@ -502,13 +556,36 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             contextDepth(ctx);
         }
 
-        // TODO: Implement array
+        // TODO: Create an array [DONE]
         List<ExprContext> exprs = ctx.expr();
+        
+        String arrayType = stack.pop();
+        String arrayName = stack.pop();
+        
+        IDENTIFIER obj = currentST.lookupAll(arrayName);
+        ARRAY a;
+        if(obj != null){
+            //Redeclare Array
+           if(!(obj instanceof ARRAY)){
+        	 System.err.println("Something went wrong.");
+           }
+            a = (ARRAY) obj;
+            a.clear();
+        }else{
+          a = new ARRAY(arrayType);
+          currentST.add(arrayName, a);
+        }
 
+        String allowedElemType = stripArrayTypeBracket(arrayType);
+        
         for (ExprContext ectx : exprs) {
-            // Populate the stack with names and types
             visit(ectx);
-
+            String arrayElemType = stack.pop();
+            String arrayElemName = stack.pop();
+            
+            stack.push(allowedElemType);
+            checkType(ectx,arrayElemName,arrayElemType);
+            a.addElem(arrayElemType);
         }
 
         return null;
@@ -622,25 +699,51 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         stack.push(checkDefinedVariable(ctx));
         return null;
     }
-
+    
     public Void visitAssignlhsarrayelem(
                     WACCParser.AssignlhsarrayelemContext ctx) {
         if (DEBUG) {
             System.out.println("-Assign LHS array elem");
             contextDepth(ctx);
         }
-        // TODO: Convert to array implementation
+        
+     // TODO: Convert to array implementation [DONE]
         String varName = ctx.arrayElem().getText();
-        String arrName = varName.substring(0, varName.indexOf('['));
-        stack.push(varName);
-        System.out.println("---ARR: " + arrName);
-        stack.push(arrName);
-        stack.push(checkDefinedVariable(ctx));
-        String typeNeeded = stack.pop();
-        typeNeeded = typeNeeded.substring(0, typeNeeded.indexOf('['));
-        // remove arrName
-        stack.pop();
-        stack.push(typeNeeded);
+        String arrayName = ctx.arrayElem().IDENT().toString();
+        
+          //check if array element variable name is declared
+          int numberOfExprs = ctx.arrayElem().expr().size();
+          
+          for(int i = 0 ; i < numberOfExprs; i++){
+        	checkArrayElementVariableName(ctx.arrayElem().expr(i).getText(),
+        		ctx.arrayElem().expr(i));
+          }
+         
+            stack.push(varName);
+            stack.push(arrayName);
+            String typeNeeded = checkDefinedVariable(ctx);
+            typeNeeded = stripArrayTypeBracket(typeNeeded);
+            //OLD CODE
+            //typeNeeded = typeNeeded.substring(0, typeNeeded.indexOf('['));
+            
+            stack.pop(); //arrayName is not needed in stack
+            stack.push(typeNeeded);
+          
+          //OLD CODE.
+//        printStack();
+//        String varName = ctx.arrayElem().getText();
+//        String arrName = varName.substring(0, varName.indexOf('['));
+//        stack.push(varName);
+//        
+//        stack.push(arrName);
+//        stack.push(checkDefinedVariable(ctx));
+//        
+//        String typeNeeded = stack.pop();
+//        typeNeeded = typeNeeded.substring(0, typeNeeded.indexOf('['));
+//        // remove arrName
+//        stack.pop();
+//        stack.push(typeNeeded);
+//        printStack();
 
         return null;
     }
@@ -754,7 +857,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
         String sndType = stack.pop();
         String fstType = stack.pop();
-
+        
         PAIR newPair = new PAIR(fstType, sndType);
 
         currentST.add(curVarName, newPair);
@@ -880,10 +983,19 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Arrayelem ");
             contextDepth(ctx);
         }
+        
+
+        int numberOfExprs = ctx.expr().size();
+        
+        for(int i = 0; i<numberOfExprs;i++){
+          checkArrayElementVariableName(ctx.expr(i).getText(),
+        	  ctx.expr(i));
+        }
+        
         String ident = ctx.IDENT().toString();
         IDENTIFIER object = currentST.lookup(ident);
 
-        // TODO: Need to complete for array
+        // TODO: Need to complete for array [OK]
         // if (!(object instanceof VARIABLE || object instanceof PAIR)) {
         // System.err.println("Something went wrong");
         // }
@@ -921,9 +1033,9 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             checkType(ctx, varName, varType);
             break;
         case "len":
-            // TODO: If NOT ARRAY
-            if (varType.equals(BOOL) || varType.equals(CHAR)
-                            || varType.equals(INT)) {
+            // TODO: If NOT ARRAY[DONE]
+            if (!isAnArray(varType)&&!(varType.equals(STRING))) {
+               //if not array, fails
                 stack.push("T[]");
                 checkType(ctx, varName, varType);
             }
