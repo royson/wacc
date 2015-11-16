@@ -1,15 +1,24 @@
-# program with function that has same parameter name as function
+# a simple recursive function
 
 # Output:
-# 99
+# #empty#
 
 # Program:
 
 begin
-  int f(int f) is
-    return f
+  int rec(int x) is
+    if x == 0 
+    then
+      skip
+    else
+      print x ;
+      x = 3 ;
+      int y = call rec(x - 1)
+    fi ;
+    return 42  
   end
-  
-  int f = call f(99);
-  println f
+
+  int x = 0 ;
+  x = call rec(8) ;
+  print x
 end

@@ -19,4 +19,9 @@ public class SymbolTable<V, O> {
     public O lookUp(V name) {
         return st.get(name);
     }
+    
+    @Override
+    public String toString() {
+        return st.toString();
+    }
 }

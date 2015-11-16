@@ -67,8 +67,27 @@ public class SymbolTableWrapper<V> {
     public PARAM lookUpParam(V name) {
         return stParam.lookUp(name);
     }
+    
+    public PARAM lookUpAllParam(V name) {
+        SymbolTableWrapper<V> temp = this;
+        while (temp != null) {
+
+            PARAM obj = temp.stParam.lookUp(name);
+            if (obj != null) {
+                return obj;
+            }
+            temp = temp.encSymTable;
+        }
+        return null;
+    }
 
     public SymbolTableWrapper<V> getEncSymTable() {
         return encSymTable;
+    }
+    
+    public void printST() {
+        System.out.println("----- Print ST -----");
+        System.out.println(stParam);
+        System.out.println("--------------------");
     }
 }

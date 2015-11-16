@@ -13,9 +13,6 @@ rm -rf rules
 
 ### Running valid tests ###
 
-WRONG ERROR CODE FOR  examples/valid/function/simple_functions/sameArgName.wacc
-EXPECTED:  0   GOT:  1
-
 WRONG ERROR CODE FOR  examples/valid/function/simple_functions/functionReturnPair.wacc
 EXPECTED:  0   GOT:  1
 
@@ -62,6 +59,9 @@ WRONG ERROR CODE FOR  examples/valid/array/arrayPrint.wacc
 EXPECTED:  0   GOT:  1
 
 WRONG ERROR CODE FOR  examples/valid/array/array.wacc
+EXPECTED:  0   GOT:  1
+
+WRONG ERROR CODE FOR  examples/valid/scope/printAllTypes.wacc
 EXPECTED:  0   GOT:  1
 
 WRONG ERROR CODE FOR  examples/valid/pairs/printPairOfNulls.wacc
