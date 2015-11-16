@@ -15,11 +15,11 @@ import org.antlr.v4.runtime.misc.Nullable;
 
 public class WACCErrorListener implements ANTLRErrorListener {
     private List<String> errorMessages = new ArrayList<String>();
-    
+
     public List<String> getErrorMessages() {
         return errorMessages;
     }
-    
+
     @Override
     public void reportAmbiguity(@NotNull Parser arg0,
                     @NotNull DFA arg1, int arg2, int arg3,
