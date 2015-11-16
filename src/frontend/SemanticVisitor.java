@@ -639,11 +639,11 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         // TODO: [Z Create an array [DONE]
         List<ExprContext> exprs = ctx.expr();
         
+        printStack();
         String arrayType = stack.pop();
         String arrayName = stack.pop();
-        System.out.println(arrayType + "$$$$" + arrayName);
-        IDENTIFIER obj = currentST.lookUpAllIdentifier(arrayName);
         
+        IDENTIFIER obj = currentST.lookUpAllIdentifier(arrayName);
         ARRAY a;
 
         if (obj != null) {
@@ -941,6 +941,9 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
             String sndType = stack.pop();
             String fstType = stack.pop();
+            
+            // TODO: [AFIX] This line is added to force names into stack
+            stack.push(curVarName);
             
             PAIR newPair = new PAIR(fstType, sndType);
 
