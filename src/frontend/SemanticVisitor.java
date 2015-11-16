@@ -369,12 +369,13 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     /* Functions to visit statements */
 
     public Void visitVarinit(WACCParser.VarinitContext ctx) {
+        String varName = ctx.IDENT().toString();
+
         if (DEBUG) {
-            System.out.print("-Variable init statement ");
+            System.out.print("-Variable init statement " + varName
+                            + " ");
             contextDepth(ctx);
         }
-
-        String varName = ctx.IDENT().toString();
 
         // Check for duplicate variable
         IDENTIFIER object = currentST.lookUpIdentifier(varName);
@@ -387,10 +388,13 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
         String varType = stack.peek();
 
+        // TODO: [AFIX] Need to fix this part
+
         // If variable is not a Pair or Array, create new var object.
         if (!varType.startsWith("Pair") && !(isAnArray(varType))) {
-            currentST.addIdentifier(ctx.IDENT().toString(),
-                            new VARIABLE(varType));
+            currentST.addIdentifier(varName, new VARIABLE(varType));
+        } else if (isAnArray(varType)) {
+            currentST.addIdentifier(varName, new ARRAY(varType));
         }
         visit(ctx.assignRHS());
 
@@ -492,7 +496,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitPrintstatement(
                     WACCParser.PrintstatementContext ctx) {
         if (DEBUG) {
-            System.out.println("-Print statement");
+            System.out.print("-Print statement ");
             contextDepth(ctx);
         }
 
@@ -506,7 +510,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitPrintlnstatement(
                     WACCParser.PrintlnstatementContext ctx) {
         if (DEBUG) {
-            System.out.println("-Print line statement");
+            System.out.print("-Print line statement ");
             contextDepth(ctx);
         }
 
@@ -569,7 +573,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitBeginendstatement(
                     WACCParser.BeginendstatementContext ctx) {
         if (DEBUG) {
-            System.out.println("-Begin end statement");
+            System.out.print("-Begin end statement ");
             contextDepth(ctx);
         }
 
@@ -637,7 +641,6 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         // TODO: [Z Create an array [DONE]
         List<ExprContext> exprs = ctx.expr();
 
-        printStack();
         String arrayType = stack.pop();
         String arrayName = stack.pop();
 
@@ -840,7 +843,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
     public Void visitPairfstelem(WACCParser.PairfstelemContext ctx) {
         if (DEBUG) {
-            System.out.println("-Assign Pair fst Elem");
+            System.out.print("-Assign Pair fst Elem ");
             contextDepth(ctx);
         }
         visit(ctx.expr());
@@ -850,7 +853,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
     public Void visitPairsndelem(WACCParser.PairsndelemContext ctx) {
         if (DEBUG) {
-            System.out.println("-Assign Pair snd Elem");
+            System.out.print("-Assign Pair snd Elem ");
             contextDepth(ctx);
         }
         visit(ctx.expr());
@@ -1098,17 +1101,13 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         if (object == null) {
             object = currentST.lookUpAllParam(ident);
         }
+        // TODO: [AFIX] We can reach here no problem
 
         // TODO: [Z Need to complete for array [OK]
-        // if (!(object instanceof VARIABLE || object instanceof PAIR)) {
-        // System.err.println("Something went wrong");
-        // }
         String arrayElemType = object.getType();
-        // if (!(object instanceof PAIR)) {
         int brackets = ctx.LBRACK().size();
         arrayElemType = arrayElemType.substring(0,
                         arrayElemType.length() - brackets * 2);
-        // }
 
         stack.push(ident);
         stack.push(arrayElemType);
