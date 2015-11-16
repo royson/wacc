@@ -1,14 +1,15 @@
-# a simple function definition and call
+# program with function that has same parameter name as function
 
 # Output:
-# 0
+# 99
 
 # Program:
 
 begin
   int f(int f) is
-    int f = 2;
-    return 0 
+    return f
   end
-  println 2
+  
+  int f = call f(99);
+  println f
 end

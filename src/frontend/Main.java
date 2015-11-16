@@ -1,16 +1,20 @@
 package frontend;
 
-import java.io.*;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 
-import org.antlr.v4.runtime.*;
-import org.antlr.v4.runtime.tree.*;
+import org.antlr.v4.runtime.ANTLRErrorListener;
+import org.antlr.v4.runtime.ANTLRInputStream;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.tree.ParseTree;
 
-import antlr.*;
+import antlr.WACCLexer;
+import antlr.WACCParser;
 
 public class Main {
     public static void main(String[] args) {
-        // System.out.println(args[0]);
         String inputFile = args[0];
 
         // Load file/input stream into ANTLRInputStream input
@@ -44,13 +48,16 @@ public class Main {
         // (parser.getNumberOfSyntaxErrors())
         // +
         // errors found in exceptional cases (visitor.getSyntaxErrorCount())
+
+        // Error messages from both the default listener and synVisitor
         List<? extends ANTLRErrorListener> errorListeners = parser
                         .getErrorListeners();
         List<String> errorMessages = ((WACCErrorListener) errorListeners
                         .get(0)).getErrorMessages();
         errorMessages.addAll(synVisitor.getErrorMessages());
+
         int syntaxErrorCount = errorMessages.size();
-        
+
         if (syntaxErrorCount > 0) {
             System.err.println("Errors detected during compilation! Exit code 100 returned.");
             for (String errorMessage : errorMessages) {
@@ -64,6 +71,5 @@ public class Main {
 
         SemanticVisitor semVisitor = new SemanticVisitor();
         semVisitor.visit(tree);
-
     }
 }

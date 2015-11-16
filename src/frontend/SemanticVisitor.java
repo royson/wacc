@@ -13,7 +13,7 @@ import semantics.FUNCTION;
 import semantics.IDENTIFIER;
 import semantics.PAIR;
 import semantics.PARAM;
-import semantics.SymbolTable;
+import semantics.SymbolTableWrapper;
 import semantics.VARIABLE;
 import antlr.WACCParser;
 import antlr.WACCParser.ExprContext;
@@ -22,7 +22,7 @@ import antlr.WACCParserBaseVisitor;
 
 public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
-    private SymbolTable<String, IDENTIFIER> currentST;
+    private SymbolTableWrapper<String> currentST;
     private Stack<String> stack = new Stack<String>();
 
     private final static String INT = "INT";
@@ -32,7 +32,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
     private String[] primitiveTypes = { INT, BOOL, CHAR, STRING };
 
-    private boolean DEBUG = false;
+    private boolean DEBUG = true;
 
     /* Helper functions */
     
@@ -140,7 +140,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     }
 
     private void newScope() {
-        SymbolTable<String, IDENTIFIER> st = new SymbolTable<String, IDENTIFIER>(
+        SymbolTableWrapper<String> st = new SymbolTableWrapper<String>(
                         currentST);
         currentST = st;
     }
@@ -243,13 +243,20 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     private String checkDefinedVariable(ParserRuleContext ctx) {
         String curIdentToCheck = stack.peek();
 
-        IDENTIFIER object = currentST.lookupAll(curIdentToCheck);
+        IDENTIFIER object = currentST
+                        .lookUpAllIdentifier(curIdentToCheck);
 
         // Variable is not declared
-        if (object == null || object instanceof FUNCTION) {
-            String errorMessage = "Variable " + curIdentToCheck
-                            + " is not defined in this scope";
-            semanticError(ctx, errorMessage);
+
+        // TODO: Make this not look so manual
+        if (object == null) {
+            PARAM object1 = currentST.lookUpParam(curIdentToCheck);
+            if (object1 == null) {
+                String errorMessage = "Variable " + curIdentToCheck
+                                + " is not defined in this scope";
+                semanticError(ctx, errorMessage);
+            }
+            return object1.getType();
         }
         return object.getType();
     }
@@ -263,13 +270,14 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Program ");
             contextDepth(ctx);
         }
-        currentST = new SymbolTable<String, IDENTIFIER>();
+        currentST = new SymbolTableWrapper<String>();
 
         List<FuncContext> funcList = ctx.func();
         for (FuncContext f : funcList) {
             String functionName = f.IDENT().toString();
 
-            IDENTIFIER object = currentST.lookupAll(functionName);
+            FUNCTION object = currentST
+                            .lookUpAllFunction(functionName);
             if (object != null) {
                 semanticError(ctx,
                                 "\""
@@ -282,7 +290,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             String functionReturnType = stack.pop();
             FUNCTION newFunc = new FUNCTION(functionReturnType);
 
-            currentST.add(functionName, newFunc);
+            currentST.addFunction(functionName, newFunc);
 
             stack.push(functionName);
 
@@ -309,7 +317,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         String varName = ctx.IDENT().toString();
 
         // Check for duplicate variable
-        IDENTIFIER object = currentST.lookup(varName);
+        IDENTIFIER object = currentST.lookUpIdentifier(varName);
         if (object != null) {
             semanticError(ctx, "\"" + varName
                             + "\" is already defined in this scope");
@@ -318,11 +326,11 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         visit(ctx.type());
 
         String varType = stack.peek();
-        // TODO: Convert to array implementation [DONE]
+
         //If variable is not a Pair or Array, create new var object.
         if (!varType.startsWith("Pair") && !(isAnArray(varType))) {
-          currentST.add(ctx.IDENT().toString(), new VARIABLE(
-                            varType));
+          currentST.addIdentifier(ctx.IDENT().toString(),
+              new VARIABLE(varType));
         }
 
         visit(ctx.assignRHS());
@@ -383,8 +391,8 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             semanticError(ctx, "Cannot return from the global scope.");
         } else {
             String functionName = stack.pop();
-            FUNCTION curFunc = (FUNCTION) currentST
-                            .lookupAll(functionName);
+            FUNCTION curFunc = currentST
+                            .lookUpAllFunction(functionName);
 
             visit(ctx.expr());
 
@@ -629,12 +637,10 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
         String funcName = stack.pop();
 
-        IDENTIFIER obj = currentST.lookupAll(funcName);
-        if (!(obj instanceof FUNCTION)) {
+        FUNCTION func = currentST.lookUpAllFunction(funcName);
+        if (func == null) {
             semanticError(ctx, "Something went wrong.");
         }
-
-        FUNCTION func = (FUNCTION) obj;
 
         // List of args
         List<ExprContext> args = ctx.expr();
@@ -668,7 +674,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
         String func = ctx.IDENT().toString();
 
-        IDENTIFIER obj = currentST.lookupAll(func);
+        IDENTIFIER obj = currentST.lookUpAllFunction(func);
 
         if (obj == null) {
             stack.push(func);
@@ -677,15 +683,15 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             semanticError(ctx, "\"" + func + "\" is not a function");
         } else {
             checkType(ctx, ctx.getText(), obj.getType());
-
             // Remove unwanted variable name
             stack.pop();
 
             // check the arguments
             stack.push(func);
-            visit(ctx.arg_list());
+            if (ctx.arg_list() != null) {
+                visit(ctx.arg_list());
+            }
         }
-
         return null;
     }
 
@@ -784,7 +790,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
         stack.pop();
         String pairName = stack.peek();
-        IDENTIFIER obj = currentST.lookupAll(pairName);
+        IDENTIFIER obj = currentST.lookUpAllIdentifier(pairName);
         if (!(obj instanceof PAIR)) {
             semanticError(ctx, "Something went wrong.");
         }
@@ -860,7 +866,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         
         PAIR newPair = new PAIR(fstType, sndType);
 
-        currentST.add(curVarName, newPair);
+        currentST.addIdentifier(curVarName, newPair);
         stack.push(newPair.toString());
 
         return null;
@@ -993,7 +999,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         }
         
         String ident = ctx.IDENT().toString();
-        IDENTIFIER object = currentST.lookup(ident);
+        IDENTIFIER object = currentST.lookUpIdentifier(ident);
 
         // TODO: Need to complete for array [OK]
         // if (!(object instanceof VARIABLE || object instanceof PAIR)) {
@@ -1117,14 +1123,12 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         }
 
         String functionName = stack.peek();
-        IDENTIFIER obj = currentST.lookupAll(functionName);
+        FUNCTION curFunc = currentST.lookUpAllFunction(functionName);
 
-        if (!(obj instanceof FUNCTION)) {
+        if (curFunc == null) {
             // semantically never reach
             semanticError(ctx, "Something went wrong");
         }
-
-        FUNCTION curFunc = (FUNCTION) obj;
 
         curFunc.setParamSize(ctx.param().size());
 
@@ -1137,14 +1141,12 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             contextDepth(ctx);
         }
         String functionName = stack.peek();
-        IDENTIFIER obj = currentST.lookupAll(functionName);
+        FUNCTION curFunc = currentST.lookUpAllFunction(functionName);
 
-        if (!(obj instanceof FUNCTION)) {
+        if (curFunc == null) {
             // semantically never reach
             semanticError(ctx, "Something went wrong");
         }
-
-        FUNCTION curFunc = (FUNCTION) obj;
 
         visit(ctx.type());
         String paramReturnType = stack.pop();
@@ -1166,13 +1168,13 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         String functionName = ctx.IDENT().toString();
 
         stack.push(functionName);
-        FUNCTION func = (FUNCTION) currentST.lookupAll(functionName);
+        FUNCTION func = currentST.lookUpAllFunction(functionName);
         newScope();
 
         // Add params in new scope
         for (int i = 0; i < func.getParamSize(); i++) {
             PARAM param = func.getParam(i);
-            currentST.add(param.getName(), param);
+            currentST.addParam(param.getName(), param);
         }
 
         visit(ctx.stat());

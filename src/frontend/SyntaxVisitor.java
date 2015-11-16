@@ -14,8 +14,6 @@ public class SyntaxVisitor extends WACCParserBaseVisitor<Void> {
     private boolean inFunction = false;
     private boolean returnExitFound = false;
 
-    private boolean DEBUG = false;
-
     private void syntaxError(ParserRuleContext ctx,
                     String errorMessage) {
         int line = ctx.getStart().getLine();
@@ -24,24 +22,18 @@ public class SyntaxVisitor extends WACCParserBaseVisitor<Void> {
                         + " -- " + errorMessage);
         syntaxErrorCount++;
     }
-    
+
     public List<String> getErrorMessages() {
         return errorMessages;
     }
 
     // Visit program
     public Void visitProgram(WACCParser.ProgramContext ctx) {
-        if (DEBUG) {
-            System.out.println("-Program");
-        }
         return visitChildren(ctx);
     }
 
     // Visit function
     public Void visitFunc(WACCParser.FuncContext ctx) {
-        if (DEBUG) {
-            System.out.println("-function");
-        }
         inFunction = true;
         visitChildren(ctx);
         if (!returnExitFound) {
@@ -57,20 +49,18 @@ public class SyntaxVisitor extends WACCParserBaseVisitor<Void> {
 
     // If statement
     public Void visitIfstatement(WACCParser.IfstatementContext ctx) {
-        if (DEBUG) {
-            System.out.println("-if statement");
-        }
-
         if (inFunction) {
             visit(ctx.IF());
             visit(ctx.expr());
             visit(ctx.THEN());
 
+            // Check if first statement has a return or exit
             returnExitFound = false;
             visit(ctx.stat(0));
 
             visit(ctx.ELSE());
 
+            // Check if second statement has a return or exit
             returnExitFound = false;
             visit(ctx.stat(1));
 
@@ -84,18 +74,12 @@ public class SyntaxVisitor extends WACCParserBaseVisitor<Void> {
     // Return statement
     public Void visitReturnstatement(
                     WACCParser.ReturnstatementContext ctx) {
-        if (DEBUG) {
-            System.out.println("-return");
-        }
         returnExitFound = true;
         return null;
     }
 
     // Exit statement
     public Void visitExitstatement(WACCParser.ExitstatementContext ctx) {
-        if (DEBUG) {
-            System.out.println("-exit");
-        }
         returnExitFound = true;
         return null;
     }
@@ -103,9 +87,6 @@ public class SyntaxVisitor extends WACCParserBaseVisitor<Void> {
     // Visiting literals
     public Void visitIntegerliteral(
                     WACCParser.IntegerliteralContext ctx) {
-        if (DEBUG) {
-            System.out.println("-Int literal");
-        }
         try {
             @SuppressWarnings("unused")
             Integer value = Integer.parseInt(ctx.getChild(0)
