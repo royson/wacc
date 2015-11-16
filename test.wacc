@@ -1,15 +1,18 @@
-# Create and free a null pair
+# print a pair of null pairs 
 
 # Output:
-# #runtime_error#
-
-# Exit:
-# 255
+# #addrs# = ((nil),(nil))
 
 # Program:
 
 begin
-  pair(pair, pair) a = null ;
-  free a
+  pair(pair, pair) p = newpair(null, null) ;
+  print p ;
+  print " = (" ;
+  pair(pair, pair) q = fst p ;
+  print q ;
+  print "," ;
+  pair(int, bool) r = snd p ;
+  print r ; 
+  println ")"
 end
-

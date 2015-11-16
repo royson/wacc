@@ -31,9 +31,6 @@ EXPECTED:  0   GOT:  1
 WRONG ERROR CODE FOR  examples/valid/scope/printAllTypes.wacc
 EXPECTED:  0   GOT:  1
 
-WRONG ERROR CODE FOR  examples/valid/pairs/printPairOfNulls.wacc
-EXPECTED:  0   GOT:  200
-
 WRONG ERROR CODE FOR  examples/valid/pairs/linkedList.wacc
 EXPECTED:  0   GOT:  200
 
@@ -50,6 +47,6 @@ EXPECTED:  0   GOT:  200
 
 ### Semantic tests complete ###
 
-Valid :  166 / 175
+Valid :  167 / 175
 Syntax:  46 / 46
 Semantic:  46 / 46

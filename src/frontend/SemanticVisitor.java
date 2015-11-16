@@ -345,9 +345,6 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             currentST.addIdentifier(ctx.IDENT().toString(),
                             new VARIABLE(varType));
         }
-
-        System.out.println(varType);
-
         visit(ctx.assignRHS());
 
         return null;
@@ -555,7 +552,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         String type = stack.pop();
         String varname = stack.pop();
 
-        if (!type.equals("null")) {
+        if (!type.equals("pair") && !varname.equals("null")) {
             checkType(ctx, varname, type);
             // clear unused name from stack
             stack.pop();
@@ -622,8 +619,6 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         }
         visit(ctx.expr(0)); // Visit fst
         visit(ctx.expr(1)); // Visit snd
-
-        printStack();
 
         String sndType = stack.pop();
         String sndVarName = stack.pop();
@@ -996,7 +991,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             contextDepth(ctx);
         }
         stack.push("null");
-        stack.push("null");
+        stack.push("pair");
         return null;
     }
 
