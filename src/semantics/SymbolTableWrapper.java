@@ -67,12 +67,12 @@ public class SymbolTableWrapper<V> {
     public IDENTIFIER lookUpParam(V name) {
         return stParam.lookUp(name);
     }
-    
+
     public IDENTIFIER lookUpAllParam(V name) {
         SymbolTableWrapper<V> temp = this;
         while (temp != null) {
 
-          	IDENTIFIER obj = temp.stParam.lookUp(name);
+            IDENTIFIER obj = temp.stParam.lookUp(name);
             if (obj != null) {
                 return obj;
             }
@@ -84,7 +84,7 @@ public class SymbolTableWrapper<V> {
     public SymbolTableWrapper<V> getEncSymTable() {
         return encSymTable;
     }
-    
+
     public void printST() {
         System.out.println("----- Print ST -----");
         System.out.println("ID: " + stIdent);

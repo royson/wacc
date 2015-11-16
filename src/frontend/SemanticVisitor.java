@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Stack;
 
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import semantics.ARRAY;
@@ -38,22 +37,6 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
     /* Helper functions */
 
-    private boolean isAnArray(String s) {
-        // STRING is not an array
-        if (s.equals(STRING))
-            return false;
-        else
-            return (s.endsWith("[]"));
-    }
-
-    private boolean isANullPair(String type) {
-        return (type.equals("pair"));
-    }
-
-    private boolean isAPair(String type) {
-        return (type.startsWith("Pair(") && type.endsWith(")"));
-    }
-
     private void visitPairElem(ParserRuleContext ctx, boolean fst) {
 
         // type of pair is not needed
@@ -67,7 +50,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             obj = currentST.lookUpAllParam(pairName);
 
             if (!(obj instanceof PAIR)) {
-                semanticError(ctx, "Something went wrong");
+                Utils.semanticError(ctx, "Something went wrong");
             }
         }
         PAIR pair = (PAIR) obj;
@@ -78,19 +61,14 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         }
     }
 
-    private String stripArrayTypeBracket(String arrayType) {
-        // This function returns the types stored in an array
-        // "INT[]" --> "INT"; "INT[][]" --> "INT[]"
-        return arrayType.substring(0, arrayType.length() - 2);
-    }
-
     // This function checks x in a[x] where arrayElemName is x;
     private void checkArrayElementVariableName(String arrayElemName,
                     ParserRuleContext ctx) {
         if (DEBUG) {
             System.out.println("-Checking array element");
         }
-        String typeOfArrayElemName = getPrimitiveType(arrayElemName);
+        String typeOfArrayElemName = Utils
+                        .getPrimitiveType(arrayElemName);
         if (typeOfArrayElemName == null) {
             // ArrayElemName is an object
             stack.push(arrayElemName);
@@ -109,31 +87,10 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         }
     }
 
-    private String getPrimitiveType(String s) {
-        String int_regex = "-?\\d+";
-        String char_regex = "\'.\'";
-        String bool_regex = "true|false";
-        String string_regex = "\".*\"";
-        if (s.matches(int_regex))
-            return INT;
-        else if (s.matches(char_regex))
-            return CHAR;
-        else if (s.matches(bool_regex))
-            return BOOL;
-        else if (s.matches(string_regex))
-            return STRING;
-        else
-            return null;
-    }
-
     private void printStack() {
         System.out.println("-----PRINTING STACK-----");
         System.out.println(Arrays.toString(stack.toArray()));
         System.out.println("------------------------");
-    }
-
-    private String renameStringToCharArray(String s) {
-        return s.equals("STRING") ? STRING : s;
     }
 
     private void visitBinaryoperator(ParserRuleContext ctx,
@@ -141,7 +98,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
                     ParserRuleContext rhs) {
         if (DEBUG) {
             System.out.print("-Binary operator ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
         // Visit LHS
         visit(lhs);
@@ -186,7 +143,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
     private void checkBinaryOpType(ParserRuleContext ctx, String type) {
         if (!(Arrays.asList(primitiveTypes).contains(type))) {
-            semanticError(ctx, "Incompatible type " + type);
+            Utils.semanticError(ctx, "Incompatible type " + type);
         }
     }
 
@@ -202,24 +159,6 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     private void freeScope() {
         currentST = currentST.getEncSymTable();
         stack = (Stack<String>) saveStack.clone();
-    }
-
-    private void semanticError(ParserRuleContext ctx,
-                    String errorMessage) {
-        Token startToken = ctx.getStart();
-        int line = startToken.getLine();
-        int pos = startToken.getCharPositionInLine();
-
-        System.err.println("Errors detected during compilation! Exit code 200 returned.");
-        System.err.println("Semantic Error at " + line + ":" + pos
-                        + " -- " + errorMessage);
-        System.exit(200);
-    }
-
-    private void contextDepth(ParserRuleContext ctx) {
-        // System.out.println(ctx.depth() + " " + ctx.getChildCount()
-        // + " " + ctx);
-        System.out.println("");
     }
 
     private String checkBinaryOpArgument(ParserRuleContext ctx,
@@ -264,18 +203,6 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         return returnType;
     }
 
-    private void checkParameters(ParserRuleContext ctx,
-                    String funcName, int paramSize, int funcSize) {
-        if (paramSize != funcSize) {
-            String errorMessage = "Incorrect number of parameters for "
-                            + funcName
-                            + " (expected: "
-                            + funcSize
-                            + ", actual: " + paramSize + ")";
-            semanticError(ctx, errorMessage);
-        }
-    }
-
     private void checkType(ParserRuleContext ctx, String value,
                     String type) {
         if (stack.isEmpty()) {
@@ -287,8 +214,9 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         String compareType = stack.pop();
 
         // Comparing null values to pairs
-        if ((isANullPair(type) && isAPair(compareType))
-                        || (isANullPair(compareType) && isAPair(type))) {
+        if ((Utils.isANullPair(type) && Utils.isAPair(compareType))
+                        || (Utils.isANullPair(compareType) && Utils
+                                        .isAPair(type))) {
             return;
         }
 
@@ -297,7 +225,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
                             + value.replaceAll("\\s", "");
             errorMessage += " (expected: " + compareType;
             errorMessage += ", actual: " + type + ")";
-            semanticError(ctx, errorMessage);
+            Utils.semanticError(ctx, errorMessage);
         }
     }
 
@@ -315,7 +243,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             if (object == null) {
                 String errorMessage = "Variable " + curIdentToCheck
                                 + " is not defined in this scope";
-                semanticError(ctx, errorMessage);
+                Utils.semanticError(ctx, errorMessage);
             }
         }
         return object.getType();
@@ -328,7 +256,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitProgram(WACCParser.ProgramContext ctx) {
         if (DEBUG) {
             System.out.print("-Program ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
         currentST = new SymbolTableWrapper<String>();
 
@@ -339,7 +267,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             FUNCTION object = currentST
                             .lookUpAllFunction(functionName);
             if (object != null) {
-                semanticError(ctx,
+                Utils.semanticError(ctx,
                                 "\""
                                                 + functionName
                                                 + "\" is already defined in this scope");
@@ -373,13 +301,13 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.print("-Variable init statement " + varName
                             + " ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
 
         // Check for duplicate variable
         IDENTIFIER object = currentST.lookUpIdentifier(varName);
         if (object != null) {
-            semanticError(ctx, "\"" + varName
+            Utils.semanticError(ctx, "\"" + varName
                             + "\" is already defined in this scope");
         }
         stack.push(varName);
@@ -388,9 +316,10 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         String varType = stack.peek();
 
         // If variable is not a Pair or Array, create new var object.
-        if (!varType.startsWith("Pair") && !(isAnArray(varType))) {
+        if (!varType.startsWith("Pair")
+                        && !(Utils.isAnArray(varType))) {
             currentST.addIdentifier(varName, new VARIABLE(varType));
-        } else if (isAnArray(varType)) {
+        } else if (Utils.isAnArray(varType)) {
             currentST.addIdentifier(varName, new ARRAY(varType));
         }
         visit(ctx.assignRHS());
@@ -401,7 +330,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitAssignment(WACCParser.AssignmentContext ctx) {
         if (DEBUG) {
             System.out.println("-Assignment statement");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
 
         visit(ctx.assignLHS());
@@ -413,7 +342,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitReadstatement(WACCParser.ReadstatementContext ctx) {
         if (DEBUG) {
             System.out.println("-Read statement");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
 
         visit(ctx.assignLHS());
@@ -422,7 +351,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
         // Only char and integers are allowed.
         if (!readType.equals(INT) && !readType.equals(CHAR)) {
-            semanticError(ctx, "Incompatible type " + readType);
+            Utils.semanticError(ctx, "Incompatible type " + readType);
         }
         return null;
     }
@@ -431,13 +360,13 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         // Can only free arrays and pairs
         if (DEBUG) {
             System.out.println("-Free statement");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
         visit(ctx.expr());
         String freeType = stack.pop();
         stack.pop(); // Remove unnecessary varname from stack
         if (Arrays.asList(primitiveTypes).contains(freeType)) {
-            semanticError(ctx, "Incompatible type " + freeType);
+            Utils.semanticError(ctx, "Incompatible type " + freeType);
         }
         return null;
     }
@@ -446,12 +375,12 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
                     WACCParser.ReturnstatementContext ctx) {
         if (DEBUG) {
             System.out.print("-Return statement ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
 
         if (currentST.getEncSymTable() == null) {
             // returning from main program
-            semanticError(ctx, "Cannot return from the global scope.");
+            Utils.semanticError(ctx, "Cannot return from the global scope.");
         } else {
             String functionName = currentFunctionName;
 
@@ -476,7 +405,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitExitstatement(WACCParser.ExitstatementContext ctx) {
         if (DEBUG) {
             System.out.println("-Exit statement");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
 
         visit(ctx.expr());
@@ -494,7 +423,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
                     WACCParser.PrintstatementContext ctx) {
         if (DEBUG) {
             System.out.print("-Print statement ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
 
         visit(ctx.expr());
@@ -508,7 +437,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
                     WACCParser.PrintlnstatementContext ctx) {
         if (DEBUG) {
             System.out.print("-Print line statement ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
 
         visit(ctx.expr());
@@ -522,7 +451,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitIfstatement(WACCParser.IfstatementContext ctx) {
         if (DEBUG) {
             System.out.print("-If statement ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
 
         visit(ctx.expr());
@@ -548,7 +477,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
                     WACCParser.WhilestatementContext ctx) {
         if (DEBUG) {
             System.out.print("-While statement ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
         visit(ctx.expr());
 
@@ -571,7 +500,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
                     WACCParser.BeginendstatementContext ctx) {
         if (DEBUG) {
             System.out.print("-Begin end statement ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
 
         newScope();
@@ -585,7 +514,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
                     WACCParser.StatementblockContext ctx) {
         if (DEBUG) {
             System.out.print("-Statement block statement ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
         visit(ctx.stat(0));
         visit(ctx.stat(1));
@@ -597,7 +526,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitAssignrhsexpr(WACCParser.AssignrhsexprContext ctx) {
         if (DEBUG) {
             System.out.print("-Assign RHS EXPR ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
 
         visit(ctx.expr());
@@ -621,7 +550,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
                     WACCParser.AssignrhsarraylitContext ctx) {
         if (DEBUG) {
             System.out.print("-Assign RHS arraylit ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
         return visitChildren(ctx);
     }
@@ -629,7 +558,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitArrayLiter(WACCParser.ArrayLiterContext ctx) {
         if (DEBUG) {
             System.out.print("-Assign ArrayLiter ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
 
         List<ExprContext> exprs = ctx.expr();
@@ -654,7 +583,8 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             currentST.addIdentifier(arrayName, a);
         }
 
-        String allowedElemType = stripArrayTypeBracket(arrayType);
+        String allowedElemType = Utils
+                        .stripArrayTypeBracket(arrayType);
 
         for (ExprContext ectx : exprs) {
             visit(ectx);
@@ -674,7 +604,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
                     WACCParser.AssignrhsnewpairContext ctx) {
         if (DEBUG) {
             System.out.print("-Assign RHS newpair ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
         visit(ctx.expr(0)); // Visit fst
         visit(ctx.expr(1)); // Visit snd
@@ -703,7 +633,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
                     WACCParser.AssignrhspairelemContext ctx) {
         if (DEBUG) {
             System.out.print("-Assign RHS pairelem ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
         visit(ctx.pairElem());
         return null;
@@ -712,20 +642,20 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitArg_list(WACCParser.Arg_listContext ctx) {
         if (DEBUG) {
             System.out.print("-ArgList call ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
 
         String funcName = stack.pop();
 
         FUNCTION func = currentST.lookUpAllFunction(funcName);
         if (func == null) {
-            semanticError(ctx, "Something went wrong.");
+            Utils.semanticError(ctx, "Something went wrong.");
         }
 
         // List of args
         List<ExprContext> args = ctx.expr();
 
-        checkParameters(ctx.getParent(), funcName, ctx.expr().size(),
+        Utils.checkParameters(ctx.getParent(), funcName, ctx.expr().size(),
                         func.getParamSize());
         System.out.println("FUNC NAME: " + funcName);
         if (!(ctx.expr().isEmpty())) {
@@ -751,7 +681,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitAssignrhscall(WACCParser.AssignrhscallContext ctx) {
         if (DEBUG) {
             System.out.print("-Assign RHS call ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
 
         String func = ctx.IDENT().toString();
@@ -762,7 +692,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             stack.push(func);
             checkDefinedVariable(ctx);
         } else if (!(obj instanceof FUNCTION)) {
-            semanticError(ctx, "\"" + func + "\" is not a function");
+            Utils.semanticError(ctx, "\"" + func + "\" is not a function");
         } else {
             checkType(ctx, ctx.getText(), obj.getType());
 
@@ -782,7 +712,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
                     WACCParser.AssignlhsidentContext ctx) {
         if (DEBUG) {
             System.out.println("-Assign LHS ident");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
         stack.push(ctx.IDENT().toString());
         stack.push(checkDefinedVariable(ctx));
@@ -793,7 +723,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
                     WACCParser.AssignlhsarrayelemContext ctx) {
         if (DEBUG) {
             System.out.println("-Assign LHS array elem");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
 
         String varName = ctx.arrayElem().getText();
@@ -810,7 +740,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         stack.push(varName);
         stack.push(arrayName);
         String typeNeeded = checkDefinedVariable(ctx);
-        typeNeeded = stripArrayTypeBracket(typeNeeded);
+        typeNeeded = Utils.stripArrayTypeBracket(typeNeeded);
 
         stack.pop(); // arrayName is not needed in stack
         stack.push(typeNeeded);
@@ -822,7 +752,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
                     WACCParser.AssignlhspairelemContext ctx) {
         if (DEBUG) {
             System.out.println("-Assign LHS pair elem");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
         visit(ctx.pairElem());
         return null;
@@ -831,7 +761,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitPairfstelem(WACCParser.PairfstelemContext ctx) {
         if (DEBUG) {
             System.out.print("-Assign Pair fst Elem ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
         visit(ctx.expr());
         visitPairElem(ctx, true);
@@ -841,7 +771,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitPairsndelem(WACCParser.PairsndelemContext ctx) {
         if (DEBUG) {
             System.out.print("-Assign Pair snd Elem ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
         visit(ctx.expr());
         visitPairElem(ctx, false);
@@ -853,7 +783,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitTypebasetype(WACCParser.TypebasetypeContext ctx) {
         if (DEBUG) {
             System.out.print("-Type BASETYPE ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
 
         String arrayBrackets = "";
@@ -865,7 +795,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             i++;
         }
 
-        String curType = renameStringToCharArray(ctx.BASETYPE()
+        String curType = Utils.renameStringToCharArray(ctx.BASETYPE()
                         .toString().toUpperCase());
         curType += arrayBrackets;
 
@@ -877,7 +807,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitTypepairtype(WACCParser.TypepairtypeContext ctx) {
         if (DEBUG) {
             System.out.print("-Type PAIRTYPE ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
         visit(ctx.pairtype());
         String arrayBrackets = "";
@@ -900,7 +830,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitArraytype(WACCParser.ArraytypeContext ctx) {
         if (DEBUG) {
             System.out.print("-Arraytype ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
         visit(ctx.type());
 
@@ -915,7 +845,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitPairtype(WACCParser.PairtypeContext ctx) {
         if (DEBUG) {
             System.out.print("-Pairtype ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
 
         String curVarName = null;
@@ -944,9 +874,9 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
                     WACCParser.PairetbasetypeContext ctx) {
         if (DEBUG) {
             System.out.print("-Pairelementype basetype ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
-        String curType = renameStringToCharArray(ctx.BASETYPE()
+        String curType = Utils.renameStringToCharArray(ctx.BASETYPE()
                         .toString().toUpperCase());
         stack.push(curType);
         return null;
@@ -956,7 +886,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
                     WACCParser.PairetarraytypeContext ctx) {
         if (DEBUG) {
             System.out.print("-Pairelementype arraytype ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
         visit(ctx.arraytype());
 
@@ -966,7 +896,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitPairetpair(WACCParser.PairetpairContext ctx) {
         if (DEBUG) {
             System.out.print("-Pairelementype pair ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
         stack.push("pair");
         return null;
@@ -984,7 +914,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
                     WACCParser.IntegerliteralContext ctx) {
         if (DEBUG) {
             System.out.print("-Int literal ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
         stack.push(ctx.INTLITERAL().toString());
         stack.push(INT);
@@ -995,7 +925,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
                     WACCParser.BooleanliteralContext ctx) {
         if (DEBUG) {
             System.out.print("-Boolean literal ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
         stack.push(ctx.BOOLEANLITERAL().toString());
         stack.push(BOOL);
@@ -1005,7 +935,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitCharliteral(WACCParser.CharliteralContext ctx) {
         if (DEBUG) {
             System.out.print("-Char literal ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
         stack.push(ctx.CHARLITERAL().toString());
         stack.push(CHAR);
@@ -1015,7 +945,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitStringliteral(WACCParser.StringliteralContext ctx) {
         if (DEBUG) {
             System.out.print("-String literal ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
         stack.push(ctx.STRINGLITERAL().toString());
         stack.push(STRING);
@@ -1025,7 +955,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitPairliteral(WACCParser.PairliteralContext ctx) {
         if (DEBUG) {
             System.out.print("-Pair literal ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
         stack.push("null");
         stack.push("pair");
@@ -1035,7 +965,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitIdentifier(WACCParser.IdentifierContext ctx) {
         if (DEBUG) {
             System.out.print("-Identifier ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
 
         stack.push(ctx.IDENT().toString());
@@ -1047,7 +977,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitArrayelement(WACCParser.ArrayelementContext ctx) {
         if (DEBUG) {
             System.out.print("-Array elements ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
 
         visit(ctx.arrayElem());
@@ -1058,7 +988,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitArrayElem(WACCParser.ArrayElemContext ctx) {
         if (DEBUG) {
             System.out.print("-Arrayelem ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
 
         int numberOfExprs = ctx.expr().size();
@@ -1088,7 +1018,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitUnaryoperator(WACCParser.UnaryoperatorContext ctx) {
         if (DEBUG) {
             System.out.print("-Unary operator ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
         visit(ctx.expr());
 
@@ -1108,7 +1038,8 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             break;
         case "len":
             // TODO: [Z If NOT ARRAY[DONE]
-            if (!isAnArray(varType) && !(varType.equals(STRING))) {
+            if (!Utils.isAnArray(varType)
+                            && !(varType.equals(STRING))) {
                 // if not array, fails
                 stack.push("T[]");
                 checkType(ctx, varName, varType);
@@ -1177,7 +1108,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitBrackets(WACCParser.BracketsContext ctx) {
         if (DEBUG) {
             System.out.print("-Brackets ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
         return visitChildren(ctx);
     }
@@ -1187,7 +1118,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitParam_list(WACCParser.Param_listContext ctx) {
         if (DEBUG) {
             System.out.print("-Param_list ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
 
         String functionName = stack.peek();
@@ -1195,7 +1126,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
         if (curFunc == null) {
             // semantically never reach
-            semanticError(ctx, "Something went wrong");
+            Utils.semanticError(ctx, "Something went wrong");
         }
 
         curFunc.setParamSize(ctx.param().size());
@@ -1212,14 +1143,14 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitParam(WACCParser.ParamContext ctx) {
         if (DEBUG) {
             System.out.print("-Param ");
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
         String functionName = stack.pop();
         FUNCTION curFunc = currentST.lookUpAllFunction(functionName);
 
         if (curFunc == null) {
             // semantically never reach
-            semanticError(ctx, "Something went wrong");
+            Utils.semanticError(ctx, "Something went wrong");
         }
 
         visit(ctx.type());
@@ -1236,7 +1167,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitFunc(WACCParser.FuncContext ctx) {
         if (DEBUG) {
             System.out.print("-Function: " + ctx.IDENT().toString());
-            contextDepth(ctx);
+            Utils.contextDepth(ctx);
         }
 
         // Check for duplicate function
@@ -1256,7 +1187,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
                             && !paramType.endsWith("[]")) {
                 PAIR p = new PAIR(paramType);
                 currentST.addParam(param.getName(), p);
-            } else if (isAnArray(paramType)) {
+            } else if (Utils.isAnArray(paramType)) {
                 ARRAY a = new ARRAY(paramType);
                 currentST.addParam(param.getName(), a);
             } else {
