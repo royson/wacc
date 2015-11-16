@@ -21,7 +21,7 @@ begin
 
   # Given a root of a binary search tree and an integer to insert, the function 
   # inserts the integer into the tree and returns the new root of the tree.
-  pair(int, pair) insert(pair(char, pair) root, char n) is
+  pair(int, pair) insert(pair(int, pair) root, int n) is
     if root == null then
       root = call createNewNode(n, null, null)
     else
