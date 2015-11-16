@@ -121,6 +121,15 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
         // check arguments for binary operation
         String lhsExpr = stack.peek();
+        
+        // TODO: [PAIR TYPE HOTFIX] Binary op
+        if (lhsType.contains("Pair(")) {
+            lhsType = "pair";
+        }
+        if (rhsType.contains("Pair(")) {
+            rhsType = "pair";
+        }
+        
         String returnType = checkBinaryOpArgument(ctx, lhs, binaryOp,
                         lhsExpr, lhsType);
         returnType = checkBinaryOpArgument(ctx, rhs, binaryOp,
@@ -494,7 +503,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitWhilestatement(
                     WACCParser.WhilestatementContext ctx) {
         if (DEBUG) {
-            System.out.println("-While statement");
+            System.out.print("-While statement ");
             contextDepth(ctx);
         }
         visit(ctx.expr());
@@ -554,8 +563,12 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
         if (!type.equals("pair") && !varname.equals("null")) {
             checkType(ctx, varname, type);
+            
+            //TODO: Hotfix for empty stack
             // clear unused name from stack
-            stack.pop();
+            if(!stack.empty()) {
+                stack.pop();
+            }
         }
 
         return null;
@@ -624,6 +637,15 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         String sndVarName = stack.pop();
         String fstType = stack.pop();
         String fstVarName = stack.pop();
+
+        // TODO: [PAIR TYPE HOTFIX] Assign RHS newpair
+        if (fstType.contains("Pair(")) {
+            fstType = "pair";
+        }
+        if (sndType.contains("Pair(")) {
+            sndType = "pair";
+        }
+
         PAIR comparePair = new PAIR(fstType, sndType);
 
         checkType(ctx, "Pair(" + fstVarName + "," + sndVarName + ")",
@@ -869,7 +891,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             contextDepth(ctx);
         }
 
-        // TODO: Fix this
+        // TODO: Make this neater, seems like got alot of duplicate code
         if (!stack.empty()) {
             // Declare pair
             String curVarName = stack.pop();
