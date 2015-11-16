@@ -1,18 +1,18 @@
-# program has function which only contains an if statement and a return in each branch
+# creates a pair which is returned from a function
 
 # Output:
-# true
+# 10
 
 # Program:
 
 begin
-  bool f() is 
-    if true then
-      return true
-    else
-      return false
-    fi
+
+  pair(int, int) getPair() is
+    pair(int, int) p = newpair(10,15);
+    return p
   end
-  bool x = call f();
+
+  pair(int, int) p = call getPair();
+  int x = fst p;
   println x
 end

@@ -336,6 +336,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
                             + "\" is already defined in this scope");
         }
         stack.push(varName);
+        printStack();
         visit(ctx.type());
 
         String varType = stack.peek();
@@ -345,6 +346,8 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             currentST.addIdentifier(ctx.IDENT().toString(),
                             new VARIABLE(varType));
         }
+
+        System.out.println(varType);
 
         visit(ctx.assignRHS());
 
@@ -620,6 +623,8 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         visit(ctx.expr(0)); // Visit fst
         visit(ctx.expr(1)); // Visit snd
 
+        printStack();
+
         String sndType = stack.pop();
         String sndVarName = stack.pop();
         String fstType = stack.pop();
@@ -869,17 +874,36 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             contextDepth(ctx);
         }
 
-        String curVarName = stack.pop();
-        visit(ctx.pairelementype(0));
-        visit(ctx.pairelementype(1));
+        // TODO: Fix this
+        if (!stack.empty()) {
+            // Declare pair
+            String curVarName = stack.pop();
+            if (DEBUG) {
+                System.out.println("-Pairtype var name " + curVarName);
+            }
+            visit(ctx.pairelementype(0));
+            visit(ctx.pairelementype(1));
 
-        String sndType = stack.pop();
-        String fstType = stack.pop();
+            String sndType = stack.pop();
+            String fstType = stack.pop();
 
-        PAIR newPair = new PAIR(fstType, sndType);
+            PAIR newPair = new PAIR(fstType, sndType);
 
-        currentST.addIdentifier(curVarName, newPair);
-        stack.push(newPair.toString());
+            currentST.addIdentifier(curVarName, newPair);
+            stack.push(newPair.toString());
+        } else {
+            if (DEBUG) {
+                System.out.println("-Pairtype No variable name");
+            }
+            visit(ctx.pairelementype(0));
+            visit(ctx.pairelementype(1));
+
+            String sndType = stack.pop();
+            String fstType = stack.pop();
+
+            PAIR newPair = new PAIR(fstType, sndType);
+            stack.push(newPair.toString());
+        }
 
         return null;
     }

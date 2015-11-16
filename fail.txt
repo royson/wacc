@@ -13,9 +13,6 @@ rm -rf rules
 
 ### Running valid tests ###
 
-WRONG ERROR CODE FOR  examples/valid/function/simple_functions/functionReturnPair.wacc
-EXPECTED:  0   GOT:  1
-
 WRONG ERROR CODE FOR  examples/valid/advanced/ticTacToe.wacc
 EXPECTED:  0   GOT:  1
 
@@ -83,6 +80,6 @@ EXPECTED:  0   GOT:  1
 
 ### Semantic tests complete ###
 
-Valid :  155 / 175
+Valid :  156 / 175
 Syntax:  46 / 46
 Semantic:  46 / 46
