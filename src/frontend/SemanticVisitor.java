@@ -45,31 +45,30 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         else
             return (s.endsWith("[]"));
     }
-    
-    private boolean isANullPair(String type){
-      return (type.equals("pair"));
+
+    private boolean isANullPair(String type) {
+        return (type.equals("pair"));
     }
-    
-    private boolean isAPair(String type){
-      return (type.startsWith("Pair(") && type.endsWith(")"));
+
+    private boolean isAPair(String type) {
+        return (type.startsWith("Pair(") && type.endsWith(")"));
     }
-    
 
     private void visitPairElem(ParserRuleContext ctx, boolean fst) {
 
         // type of pair is not needed
         stack.pop();
-        
+
         String pairName = stack.peek();
         IDENTIFIER obj = currentST.lookUpAllIdentifier(pairName);
 
         if (!(obj instanceof PAIR)) {
-            //obj must be in local parameters
-          	obj = currentST.lookUpAllParam(pairName);
-          	
-          	if(!(obj instanceof PAIR)){
-          	  semanticError(ctx,"Something went wrong");
-          	}
+            // obj must be in local parameters
+            obj = currentST.lookUpAllParam(pairName);
+
+            if (!(obj instanceof PAIR)) {
+                semanticError(ctx, "Something went wrong");
+            }
         }
         PAIR pair = (PAIR) obj;
         if (fst) {
@@ -78,7 +77,6 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             stack.push(pair.getSndType());
         }
     }
-
 
     private String stripArrayTypeBracket(String arrayType) {
         // This function returns the types stored in an array
@@ -287,10 +285,10 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             return;
         }
         String compareType = stack.pop();
-        
-        //Comparing null values to pairs
-        if( (isANullPair(type) && isAPair(compareType))
-            || (isANullPair(compareType) && isAPair(type)) ){
+
+        // Comparing null values to pairs
+        if ((isANullPair(type) && isAPair(compareType))
+                        || (isANullPair(compareType) && isAPair(type))) {
             return;
         }
 
@@ -309,8 +307,8 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         // Object should take precedence
         IDENTIFIER object = currentST
                         .lookUpAllIdentifier(curIdentToCheck);
-        
-                // TODO: [STYLE] Make this look nicer
+
+        // TODO: [STYLE] Make this look nicer
         if (object == null) {
             // Need to go up and find all params
             object = currentST.lookUpAllParam(curIdentToCheck);
@@ -455,20 +453,20 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             semanticError(ctx, "Cannot return from the global scope.");
         } else {
             String functionName = currentFunctionName;
-                        
+
             FUNCTION curFunc = currentST
                             .lookUpAllFunction(functionName);
-            
+
             visit(ctx.expr());
 
             String type = stack.pop();
             String varname = stack.pop();
-            
+
             if (!curFunc.getType().equals(type)) {
                 stack.push(curFunc.getType());
                 checkType(ctx, varname, type);
             }
-            
+
         }
 
         return null;
@@ -638,11 +636,11 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
         // TODO: [Z Create an array [DONE]
         List<ExprContext> exprs = ctx.expr();
-        
+
         printStack();
         String arrayType = stack.pop();
         String arrayName = stack.pop();
-        
+
         IDENTIFIER obj = currentST.lookUpAllIdentifier(arrayName);
         ARRAY a;
 
@@ -650,27 +648,28 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             // Redeclare Array
 
             // TODO: [FIX - printalltypes] Where something goes wrong
-            // Cannot do the cast to array
             if (!(obj instanceof ARRAY)) {
-               // semanticError(ctx,"SOMETHING WENT WRONG.");
+                a = new ARRAY(arrayType);
+                currentST.addIdentifier(arrayName, a);
+            } else {
+                a = (ARRAY) obj;
+                a.clear();
             }
-            a = (ARRAY) obj;
-            a.clear();
         } else {
             a = new ARRAY(arrayType);
             currentST.addIdentifier(arrayName, a);
         }
-        
+
         String allowedElemType = stripArrayTypeBracket(arrayType);
 
         for (ExprContext ectx : exprs) {
             visit(ectx);
             String arrayElemType = stack.pop();
             String arrayElemName = stack.pop();
-            
+
             stack.push(allowedElemType);
             checkType(ectx, arrayElemName, arrayElemType);
-            
+
             a.addElem(arrayElemType);
         }
 
@@ -721,7 +720,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-ArgList call ");
             contextDepth(ctx);
         }
-        
+
         String funcName = stack.pop();
 
         FUNCTION func = currentST.lookUpAllFunction(funcName);
@@ -742,11 +741,11 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
                 printStack();
                 String argType = stack.pop();
                 String argName = stack.pop();
-                
+
                 PARAM p = func.getParam(i);
                 System.out.println("COMPARE TYPE: " + p.getType());
                 stack.push(p.getType());
-                
+
                 checkType(ectx, argName, argType);
 
                 i++;
@@ -760,7 +759,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Assign RHS call ");
             contextDepth(ctx);
         }
-        
+
         String func = ctx.IDENT().toString();
 
         IDENTIFIER obj = currentST.lookUpAllFunction(func);
@@ -771,9 +770,9 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         } else if (!(obj instanceof FUNCTION)) {
             semanticError(ctx, "\"" + func + "\" is not a function");
         } else {
-            //TODO: [FIX - binarysorttree] Params
+            // TODO: [Z FIX - binarysorttree] Params
             checkType(ctx, ctx.getText(), obj.getType());
-            
+
             // Remove unwanted variable name
             stack.pop();
 
@@ -903,8 +902,8 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         String curType = stack.pop();
         curType += arrayBrackets;
 
-        stack.push(curType);        
-        
+        stack.push(curType);
+
         return null;
     }
 
@@ -941,10 +940,10 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
             String sndType = stack.pop();
             String fstType = stack.pop();
-            
-            // TODO: [AFIX] This line is added to force names into stack
+
+            // TODO: [Z AFIX DONE] This line is added to force names into stack
             stack.push(curVarName);
-            
+
             PAIR newPair = new PAIR(fstType, sndType);
 
             currentST.addIdentifier(curVarName, newPair);
@@ -1063,7 +1062,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Identifier ");
             contextDepth(ctx);
         }
-        
+
         stack.push(ctx.IDENT().toString());
         stack.push(checkDefinedVariable(ctx));
 
@@ -1096,7 +1095,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
         String ident = ctx.IDENT().toString();
         IDENTIFIER object = currentST.lookUpAllIdentifier(ident);
-        if(object == null){
+        if (object == null) {
             object = currentST.lookUpAllParam(ident);
         }
 
@@ -1105,11 +1104,11 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         // System.err.println("Something went wrong");
         // }
         String arrayElemType = object.getType();
-        //if (!(object instanceof PAIR)) {
-            int brackets = ctx.LBRACK().size();
-            arrayElemType = arrayElemType.substring(0,
-                            arrayElemType.length() - brackets * 2);
-        //}
+        // if (!(object instanceof PAIR)) {
+        int brackets = ctx.LBRACK().size();
+        arrayElemType = arrayElemType.substring(0,
+                        arrayElemType.length() - brackets * 2);
+        // }
 
         stack.push(ident);
         stack.push(arrayElemType);
@@ -1122,7 +1121,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             contextDepth(ctx);
         }
         visit(ctx.expr());
-        
+
         String varType = stack.pop();
         String varName = stack.peek();
 
@@ -1256,7 +1255,8 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         visit(ctx.type());
         String paramReturnType = stack.pop();
         String paramName = ctx.IDENT().toString();
-        System.out.println("ADD PARAM: " + paramReturnType + "  ,  " + paramName);
+        System.out.println("ADD PARAM: " + paramReturnType + "  ,  "
+                        + paramName);
         PARAM newParam = new PARAM(paramReturnType, paramName);
         curFunc.addParam(newParam);
 
@@ -1281,19 +1281,19 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             PARAM param = func.getParam(i);
 
             String paramType = param.getType();
-            
-            if (paramType.startsWith("Pair")&&!paramType.endsWith("[]")) {
-            	 PAIR p = new PAIR(paramType);
-            	 currentST.addParam(param.getName(), p);
-            }
-            else if(isAnArray(paramType)){
-              	ARRAY a = new ARRAY(paramType);
-              	currentST.addParam(param.getName(), a);
-            }else{
-              	currentST.addParam(param.getName(), param);
+
+            if (paramType.startsWith("Pair")
+                            && !paramType.endsWith("[]")) {
+                PAIR p = new PAIR(paramType);
+                currentST.addParam(param.getName(), p);
+            } else if (isAnArray(paramType)) {
+                ARRAY a = new ARRAY(paramType);
+                currentST.addParam(param.getName(), a);
+            } else {
+                currentST.addParam(param.getName(), param);
             }
         }
-        
+
         currentFunctionName = functionName;
         visit(ctx.stat());
         freeScope();
