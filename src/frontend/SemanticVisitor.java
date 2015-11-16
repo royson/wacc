@@ -34,7 +34,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
     private String[] primitiveTypes = { INT, BOOL, CHAR, STRING };
 
-    private boolean DEBUG = true;
+    private boolean DEBUG = false;
 
     /* Helper functions */
 
@@ -308,7 +308,6 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         IDENTIFIER object = currentST
                         .lookUpAllIdentifier(curIdentToCheck);
 
-        // TODO: [STYLE] Make this look nicer
         if (object == null) {
             // Need to go up and find all params
             object = currentST.lookUpAllParam(curIdentToCheck);
@@ -387,8 +386,6 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         visit(ctx.type());
 
         String varType = stack.peek();
-
-        // TODO: [AFIX] Need to fix this part
 
         // If variable is not a Pair or Array, create new var object.
         if (!varType.startsWith("Pair") && !(isAnArray(varType))) {
@@ -611,8 +608,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         if (!type.equals("pair") && !varname.equals("null")) {
             checkType(ctx, varname, type);
 
-            // TODO: [Z Hotfix for empty stack
-            // clear unused name from stack
+            // Clear unused name from stack
             if (!stack.empty()) {
                 stack.pop();
             }
@@ -636,9 +632,6 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             contextDepth(ctx);
         }
 
-        // TODO: [FIX - printalltypes] Assign ArrayLiter
-
-        // TODO: [Z Create an array [DONE]
         List<ExprContext> exprs = ctx.expr();
 
         String arrayType = stack.pop();
@@ -649,8 +642,6 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
         if (obj != null) {
             // Redeclare Array
-
-            // TODO: [FIX - printalltypes] Where something goes wrong
             if (!(obj instanceof ARRAY)) {
                 a = new ARRAY(arrayType);
                 currentST.addIdentifier(arrayName, a);
@@ -773,7 +764,6 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         } else if (!(obj instanceof FUNCTION)) {
             semanticError(ctx, "\"" + func + "\" is not a function");
         } else {
-            // TODO: [Z FIX - binarysorttree] Params
             checkType(ctx, ctx.getText(), obj.getType());
 
             // Remove unwanted variable name
@@ -806,11 +796,10 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             contextDepth(ctx);
         }
 
-        // TODO: [Z Convert to array implementation [DONE]
         String varName = ctx.arrayElem().getText();
         String arrayName = ctx.arrayElem().IDENT().toString();
 
-        // check if array element variable name is declared
+        // Check if array element variable name is declared
         int numberOfExprs = ctx.arrayElem().expr().size();
 
         for (int i = 0; i < numberOfExprs; i++) {
@@ -822,8 +811,6 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         stack.push(arrayName);
         String typeNeeded = checkDefinedVariable(ctx);
         typeNeeded = stripArrayTypeBracket(typeNeeded);
-        // OLD CODE
-        // typeNeeded = typeNeeded.substring(0, typeNeeded.indexOf('['));
 
         stack.pop(); // arrayName is not needed in stack
         stack.push(typeNeeded);
@@ -931,40 +918,25 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             contextDepth(ctx);
         }
 
-        // TODO: [STYLE] Make this neater, seems like got alot of duplicate code
-        if (!stack.empty()) {
+        String curVarName = null;
+        boolean stackEmptyFlag = stack.empty();
+        if (!stackEmptyFlag) {
             // Declare pair
-            String curVarName = stack.pop();
-            if (DEBUG) {
-                System.out.println("-Pairtype var name " + curVarName);
-            }
-            visit(ctx.pairelementype(0));
-            visit(ctx.pairelementype(1));
-
-            String sndType = stack.pop();
-            String fstType = stack.pop();
-
-            // TODO: [Z AFIX DONE] This line is added to force names into stack
-            stack.push(curVarName);
-
-            PAIR newPair = new PAIR(fstType, sndType);
-
-            currentST.addIdentifier(curVarName, newPair);
-            stack.push(newPair.toString());
-        } else {
-            if (DEBUG) {
-                System.out.println("-Pairtype No variable name");
-            }
-            visit(ctx.pairelementype(0));
-            visit(ctx.pairelementype(1));
-
-            String sndType = stack.pop();
-            String fstType = stack.pop();
-
-            PAIR newPair = new PAIR(fstType, sndType);
-            stack.push(newPair.toString());
+            curVarName = stack.pop();
         }
+        visit(ctx.pairelementype(0));
+        visit(ctx.pairelementype(1));
 
+        String sndType = stack.pop();
+        String fstType = stack.pop();
+
+        PAIR newPair = new PAIR(fstType, sndType);
+
+        if (!stackEmptyFlag) {
+            currentST.addIdentifier(curVarName, newPair);
+            stack.push(curVarName);
+        }
+        stack.push(newPair.toString());
         return null;
     }
 
@@ -1101,11 +1073,10 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         if (object == null) {
             object = currentST.lookUpAllParam(ident);
         }
-        // TODO: [AFIX] We can reach here no problem
 
-        // TODO: [Z Need to complete for array [OK]
         String arrayElemType = object.getType();
         int brackets = ctx.LBRACK().size();
+
         arrayElemType = arrayElemType.substring(0,
                         arrayElemType.length() - brackets * 2);
 
