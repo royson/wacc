@@ -16,15 +16,6 @@ rm -rf rules
 WRONG ERROR CODE FOR  examples/valid/function/simple_functions/functionReturnPair.wacc
 EXPECTED:  0   GOT:  1
 
-WRONG ERROR CODE FOR  examples/valid/function/nested_functions/fibonacciFullRec.wacc
-EXPECTED:  0   GOT:  1
-
-WRONG ERROR CODE FOR  examples/valid/function/nested_functions/fibonacciRecursive.wacc
-EXPECTED:  0   GOT:  1
-
-WRONG ERROR CODE FOR  examples/valid/function/nested_functions/functionConditionalReturn.wacc
-EXPECTED:  0   GOT:  1
-
 WRONG ERROR CODE FOR  examples/valid/advanced/ticTacToe.wacc
 EXPECTED:  0   GOT:  1
 
@@ -92,6 +83,6 @@ EXPECTED:  0   GOT:  1
 
 ### Semantic tests complete ###
 
-Valid :  152 / 175
+Valid :  155 / 175
 Syntax:  46 / 46
 Semantic:  46 / 46

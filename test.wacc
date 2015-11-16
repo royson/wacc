@@ -1,24 +1,18 @@
-# a simple recursive function
+# program has function which only contains an if statement and a return in each branch
 
 # Output:
-# #empty#
+# true
 
 # Program:
 
 begin
-  int rec(int x) is
-    if x == 0 
-    then
-      skip
+  bool f() is 
+    if true then
+      return true
     else
-      print x ;
-      x = 3 ;
-      int y = call rec(x - 1)
-    fi ;
-    return 42  
+      return false
+    fi
   end
-
-  int x = 0 ;
-  x = call rec(8) ;
-  print x
+  bool x = call f();
+  println x
 end

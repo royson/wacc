@@ -24,6 +24,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
     private SymbolTableWrapper<String> currentST;
     private Stack<String> stack = new Stack<String>();
+    private Stack<String> saveStack = new Stack<String>();
 
     private final static String INT = "INT";
     private final static String BOOL = "BOOL";
@@ -145,14 +146,18 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private void newScope() {
         SymbolTableWrapper<String> st = new SymbolTableWrapper<String>(
                         currentST);
         currentST = st;
+        saveStack = (Stack<String>) stack.clone();
     }
 
+    @SuppressWarnings("unchecked")
     private void freeScope() {
         currentST = currentST.getEncSymTable();
+        stack = (Stack<String>) saveStack.clone();
     }
 
     private void semanticError(ParserRuleContext ctx,
@@ -248,17 +253,17 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
     private String checkDefinedVariable(ParserRuleContext ctx) {
         String curIdentToCheck = stack.peek();
-        
+
         // Object should take precedence
         IDENTIFIER object = currentST
                         .lookUpAllIdentifier(curIdentToCheck);
 
         // TODO: Make this not look so manual
         if (object == null) {
-            
-            //Need to go up and find all params
+
+            // Need to go up and find all params
             PARAM object1 = currentST.lookUpAllParam(curIdentToCheck);
-            
+
             if (object1 == null) {
                 String errorMessage = "Variable " + curIdentToCheck
                                 + " is not defined in this scope";
@@ -390,7 +395,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitReturnstatement(
                     WACCParser.ReturnstatementContext ctx) {
         if (DEBUG) {
-            System.out.println("-Return statement");
+            System.out.print("-Return statement ");
             contextDepth(ctx);
         }
 
@@ -464,7 +469,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
     public Void visitIfstatement(WACCParser.IfstatementContext ctx) {
         if (DEBUG) {
-            System.out.println("-If statement");
+            System.out.print("-If statement ");
             contextDepth(ctx);
         }
 
@@ -479,9 +484,9 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         checkType(ctx.expr(), condition, ifExprType);
 
         // giving a new scope for each stat
-        for (int x = 0; x < 2; x++) {
+        for (int i = 0; i < 2; i++) {
             newScope();
-            visit(ctx.stat(x));
+            visit(ctx.stat(i));
             freeScope();
         }
         return null;
@@ -527,7 +532,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitStatementblock(
                     WACCParser.StatementblockContext ctx) {
         if (DEBUG) {
-            System.out.println("-Statement block statement");
+            System.out.print("-Statement block statement ");
             contextDepth(ctx);
         }
         visit(ctx.stat(0));
