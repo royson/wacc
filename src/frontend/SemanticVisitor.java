@@ -31,7 +31,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
     private String[] primitiveTypes = { INT, BOOL, CHAR, STRING };
 
-    private boolean DEBUG = false;
+    private boolean DEBUG = true;
 
     /* Helper functions */
 
@@ -600,15 +600,15 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             semanticError(ctx, "\"" + func + "\" is not a function");
         } else {
             checkType(ctx, ctx.getText(), obj.getType());
-
             // Remove unwanted variable name
             stack.pop();
 
             // check the arguments
             stack.push(func);
-            visit(ctx.arg_list());
+            if(ctx.arg_list() != null) {
+                visit(ctx.arg_list());
+            }
         }
-
         return null;
     }
 
