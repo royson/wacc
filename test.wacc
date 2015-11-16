@@ -1,18 +1,15 @@
-# creates a pair which is returned from a function
+# Create and free a null pair
 
 # Output:
-# 10
+# #runtime_error#
+
+# Exit:
+# 255
 
 # Program:
 
 begin
-
-  pair(int, int) getPair() is
-    pair(int, int) p = newpair(10,15);
-    return p
-  end
-
-  pair(int, int) p = call getPair();
-  int x = fst p;
-  println x
+  pair(pair, pair) a = null ;
+  free a
 end
+

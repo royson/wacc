@@ -22,27 +22,6 @@ EXPECTED:  0   GOT:  1
 WRONG ERROR CODE FOR  examples/valid/advanced/binarySortTree.wacc
 EXPECTED:  0   GOT:  1
 
-WRONG ERROR CODE FOR  examples/valid/runtimeErr/nullDereference/useNull2.wacc
-EXPECTED:  0   GOT:  1
-
-WRONG ERROR CODE FOR  examples/valid/runtimeErr/nullDereference/freeNull.wacc
-EXPECTED:  0   GOT:  1
-
-WRONG ERROR CODE FOR  examples/valid/runtimeErr/nullDereference/setNull2.wacc
-EXPECTED:  0   GOT:  1
-
-WRONG ERROR CODE FOR  examples/valid/runtimeErr/nullDereference/useNull1.wacc
-EXPECTED:  0   GOT:  1
-
-WRONG ERROR CODE FOR  examples/valid/runtimeErr/nullDereference/setNull1.wacc
-EXPECTED:  0   GOT:  1
-
-WRONG ERROR CODE FOR  examples/valid/runtimeErr/nullDereference/readNull2.wacc
-EXPECTED:  0   GOT:  1
-
-WRONG ERROR CODE FOR  examples/valid/runtimeErr/nullDereference/readNull1.wacc
-EXPECTED:  0   GOT:  1
-
 WRONG ERROR CODE FOR  examples/valid/array/arrayPrint.wacc
 EXPECTED:  0   GOT:  1
 
@@ -53,22 +32,13 @@ WRONG ERROR CODE FOR  examples/valid/scope/printAllTypes.wacc
 EXPECTED:  0   GOT:  1
 
 WRONG ERROR CODE FOR  examples/valid/pairs/printPairOfNulls.wacc
-EXPECTED:  0   GOT:  1
-
-WRONG ERROR CODE FOR  examples/valid/pairs/null.wacc
-EXPECTED:  0   GOT:  1
-
-WRONG ERROR CODE FOR  examples/valid/pairs/printNull.wacc
-EXPECTED:  0   GOT:  1
+EXPECTED:  0   GOT:  200
 
 WRONG ERROR CODE FOR  examples/valid/pairs/linkedList.wacc
-EXPECTED:  0   GOT:  1
+EXPECTED:  0   GOT:  200
 
 WRONG ERROR CODE FOR  examples/valid/pairs/nestedPair.wacc
-EXPECTED:  0   GOT:  1
-
-WRONG ERROR CODE FOR  examples/valid/pairs/printNullPair.wacc
-EXPECTED:  0   GOT:  1
+EXPECTED:  0   GOT:  200
 
 ### Valid tests complete ###
 
@@ -80,6 +50,6 @@ EXPECTED:  0   GOT:  1
 
 ### Semantic tests complete ###
 
-Valid :  156 / 175
+Valid :  166 / 175
 Syntax:  46 / 46
 Semantic:  46 / 46

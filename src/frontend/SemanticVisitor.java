@@ -336,7 +336,6 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
                             + "\" is already defined in this scope");
         }
         stack.push(varName);
-        printStack();
         visit(ctx.type());
 
         String varType = stack.peek();
@@ -556,10 +555,11 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         String type = stack.pop();
         String varname = stack.pop();
 
-        checkType(ctx, varname, type);
-
-        // clear unused name from stack
-        stack.pop();
+        if (!type.equals("null")) {
+            checkType(ctx, varname, type);
+            // clear unused name from stack
+            stack.pop();
+        }
 
         return null;
     }
@@ -936,6 +936,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Pairelementype pair ");
             contextDepth(ctx);
         }
+        stack.push("pair");
         return null;
     }
 
@@ -994,8 +995,9 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Pair literal ");
             contextDepth(ctx);
         }
-
-        return visitChildren(ctx);
+        stack.push("null");
+        stack.push("null");
+        return null;
     }
 
     public Void visitIdentifier(WACCParser.IdentifierContext ctx) {
