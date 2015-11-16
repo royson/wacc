@@ -6,6 +6,7 @@ import java.util.List;
 public class ARRAY extends IDENTIFIER {
   private List<String> elems;
   int size;
+  String type;
 
   public ARRAY(String type) {
 	super(type);

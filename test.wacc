@@ -1,27 +1,26 @@
-# create and print a linked list using pairs
+# print the contents of a simple array
 
 # Output:
-# list = {1, 2, 4, 11}
+# #addrs# = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 
 # Program:
 
 begin
-  pair(int, pair) p = newpair(11, null) ;
-    pair(int, pair) q = newpair(4, p) ;
-    pair(int, pair) r = newpair(2, q) ;
-    pair(int, pair) s = newpair(1, r) ;
-    print "list = {" ;
-    pair(int, pair) x = s ;
-    pair(int, pair) y = snd x ;
-    int f = 0;
-    while y != null do
-      f = fst x ;
-      print f ;
-      print ", " ;
-      x = y ;
-      y = snd x
-    done ;
-    f = fst x ;
-    print f ;
-    println "}"
+  int[] a = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] ;
+  int i = 0 ;
+  print a ;
+  print " = {" ;
+  i = 0 ;
+  while i < 10 
+  do 
+    print a[i] ;
+    if i < 9
+    then
+      print ", "
+    else
+      skip
+    fi ;
+    i = i + 1
+  done ;
+  println "}"
 end

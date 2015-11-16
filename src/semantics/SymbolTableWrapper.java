@@ -87,7 +87,9 @@ public class SymbolTableWrapper<V> {
     
     public void printST() {
         System.out.println("----- Print ST -----");
-        System.out.println(stParam);
+        System.out.println("ID: " + stIdent);
+        System.out.println("Func: " + stFunc);
+        System.out.println("Param: " + stParam);
         System.out.println("--------------------");
     }
 }

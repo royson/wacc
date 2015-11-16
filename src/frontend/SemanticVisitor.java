@@ -54,7 +54,9 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
     // This function checks x in a[x] where arrayElemName is x;
     private void checkArrayElementVariableName(String arrayElemName,
                     ParserRuleContext ctx) {
-
+        if (DEBUG) {
+            System.out.println("-Checking array element");
+        }
         String typeOfArrayElemName = getPrimitiveType(arrayElemName);
         if (typeOfArrayElemName == null) {
             // ArrayElemName is an object
@@ -267,7 +269,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         IDENTIFIER object = currentST
                         .lookUpAllIdentifier(curIdentToCheck);
 
-        // TODO: Make this not look so manual
+        // TODO: [STYLE] Make this look nicer
         if (object == null) {
 
             // Need to go up and find all params
@@ -891,7 +893,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             contextDepth(ctx);
         }
 
-        // TODO: Make this neater, seems like got alot of duplicate code
+        // TODO: [STYLE] Make this neater, seems like got alot of duplicate code
         if (!stack.empty()) {
             // Declare pair
             String curVarName = stack.pop();
@@ -1044,22 +1046,23 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             System.out.print("-Arrayelem ");
             contextDepth(ctx);
         }
+        
+        //TODO: [CFIX] Array elem type
 
         int numberOfExprs = ctx.expr().size();
-
+        
         for (int i = 0; i < numberOfExprs; i++) {
             checkArrayElementVariableName(ctx.expr(i).getText(),
                             ctx.expr(i));
         }
 
         String ident = ctx.IDENT().toString();
-        IDENTIFIER object = currentST.lookUpIdentifier(ident);
+        IDENTIFIER object = currentST.lookUpAllIdentifier(ident);
 
         // TODO: Need to complete for array [OK]
         // if (!(object instanceof VARIABLE || object instanceof PAIR)) {
         // System.err.println("Something went wrong");
         // }
-
         String arrayElemType = object.getType();
         if (!(object instanceof PAIR)) {
             int brackets = ctx.LBRACK().size();

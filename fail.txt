@@ -22,12 +22,6 @@ EXPECTED:  0   GOT:  1
 WRONG ERROR CODE FOR  examples/valid/advanced/binarySortTree.wacc
 EXPECTED:  0   GOT:  1
 
-WRONG ERROR CODE FOR  examples/valid/array/arrayPrint.wacc
-EXPECTED:  0   GOT:  1
-
-WRONG ERROR CODE FOR  examples/valid/array/array.wacc
-EXPECTED:  0   GOT:  1
-
 WRONG ERROR CODE FOR  examples/valid/scope/printAllTypes.wacc
 EXPECTED:  0   GOT:  1
 
@@ -41,6 +35,6 @@ EXPECTED:  0   GOT:  1
 
 ### Semantic tests complete ###
 
-Valid :  169 / 175
+Valid :  171 / 175
 Syntax:  46 / 46
 Semantic:  46 / 46
