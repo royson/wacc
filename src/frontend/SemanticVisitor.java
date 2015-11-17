@@ -541,7 +541,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
 
         Utils.checkParameters(ctx.getParent(), funcName, ctx.expr()
                         .size(), func.getParamSize());
-        System.out.println("FUNC NAME: " + funcName);
+
         if (!(ctx.expr().isEmpty())) {
             int i = 0;
             for (ExprContext ectx : args) {
@@ -551,7 +551,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
                 String argName = stack.pop();
 
                 PARAM p = func.getParam(i);
-                System.out.println("COMPARE TYPE: " + p.getType());
+
                 stack.push(p.getType());
 
                 checkType(ectx, argName, argType);
@@ -919,8 +919,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         visit(ctx.type());
         String paramReturnType = stack.pop();
         String paramName = ctx.IDENT().toString();
-        System.out.println("ADD PARAM: " + paramReturnType + "  ,  "
-                        + paramName);
+
         PARAM newParam = new PARAM(paramReturnType, paramName);
         curFunc.addParam(newParam);
 

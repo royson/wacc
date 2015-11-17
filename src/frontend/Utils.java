@@ -53,10 +53,6 @@ public class Utils {
         return s.equals("STRING") ? STRING : s;
     }
     
-    public static void contextDepth(ParserRuleContext ctx) {
-        System.out.println("");
-    }
-    
     public static void checkParameters(ParserRuleContext ctx,
                     String funcName, int paramSize, int funcSize) {
         if (paramSize != funcSize) {
