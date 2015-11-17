@@ -82,12 +82,6 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         }
     }
 
-    private void printStack() {
-        System.out.println("-----PRINTING STACK-----");
-        System.out.println(Arrays.toString(stack.toArray()));
-        System.out.println("------------------------");
-    }
-
     private void visitBinaryoperator(ParserRuleContext ctx,
                     String binaryOp, ParserRuleContext lhs,
                     ParserRuleContext rhs) {
@@ -105,7 +99,6 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         // check arguments for binary operation
         String lhsExpr = stack.peek();
 
-        // TODO: [Z PAIR TYPE HOTFIX] Binary op
         if (lhsType.contains("Pair(")) {
             lhsType = "pair";
         }
@@ -515,7 +508,6 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
         String fstType = stack.pop();
         String fstVarName = stack.pop();
 
-        // TODO: [Z PAIR TYPE HOTFIX] Assign RHS newpair
         if (fstType.contains("Pair(")) {
             fstType = "pair";
         }
@@ -554,7 +546,7 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             int i = 0;
             for (ExprContext ectx : args) {
                 visit(ectx);
-                printStack();
+
                 String argType = stack.pop();
                 String argName = stack.pop();
 
@@ -826,10 +818,9 @@ public class SemanticVisitor extends WACCParserBaseVisitor<Void> {
             checkType(ctx, varName, varType);
             break;
         case "len":
-            // TODO: [Z If NOT ARRAY[DONE]
             if (!Utils.isAnArray(varType)
                             && !(varType.equals(STRING))) {
-                // if not array, fails
+                // if not array, raise the exception
                 stack.push("T[]");
                 checkType(ctx, varName, varType);
             }
