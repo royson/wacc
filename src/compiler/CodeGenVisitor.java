@@ -1,0 +1,553 @@
+package compiler;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Stack;
+
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.tree.TerminalNode;
+
+import semantics.FUNCTION;
+import semantics.PARAM;
+import semantics.SymbolTableWrapper;
+import antlr.WACCParser;
+import antlr.WACCParser.ExprContext;
+import antlr.WACCParserBaseVisitor;
+
+public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
+
+    private SymbolTableWrapper<String> currentST;
+    private Stack<String> stack = new Stack<String>();
+    private Stack<String> saveStack = new Stack<String>();
+    private String currentFunctionName = "";
+
+    private final static String INT = "INT";
+    private final static String BOOL = "BOOL";
+    private final static String CHAR = "CHAR";
+    private final static String STRING = "CHAR[]";
+
+    private String[] primitiveTypes = { INT, BOOL, CHAR, STRING };
+
+    private boolean DEBUG = false;
+
+    /* Helper functions */
+    private void printStack() {
+        System.out.println("-----PRINTING STACK-----");
+        System.out.println(Arrays.toString(stack.toArray()));
+        System.out.println("------------------------");
+    }
+
+    @SuppressWarnings("unchecked")
+    private void newScope() {
+        SymbolTableWrapper<String> st = new SymbolTableWrapper<String>(
+                        currentST);
+        currentST = st;
+        saveStack = (Stack<String>) stack.clone();
+    }
+
+    @SuppressWarnings("unchecked")
+    private void freeScope() {
+        currentST = currentST.getEncSymTable();
+        stack = (Stack<String>) saveStack.clone();
+    }
+
+    private void visitPairElem(ParserRuleContext ctx, boolean fst) {
+    }
+
+    // This function checks x in a[x] where arrayElemName is x;
+    private void checkArrayElementVariableName(String arrayElemName,
+                    ParserRuleContext ctx) {
+    }
+
+    private void visitBinaryoperator(ParserRuleContext ctx,
+                    String binaryOp, ParserRuleContext lhs,
+                    ParserRuleContext rhs) {
+        if (DEBUG) {
+            System.out.println("-Binary operator");
+        }
+        visit(lhs);
+        visit(rhs);
+    }
+
+    private void checkBinaryOpType(ParserRuleContext ctx, String type) {
+    }
+
+    private String checkBinaryOpArgument(ParserRuleContext ctx,
+                    ParserRuleContext ectx, String binaryOp,
+                    String binaryExpr, String binaryType) {
+        return null;
+    }
+
+    private void checkType(ParserRuleContext ctx, String value,
+                    String type) {
+    }
+
+    private String checkDefinedVariable(ParserRuleContext ctx) {
+        return null;
+    }
+
+    /* Write functions to traverse tree below here */
+
+    /* Visit the main program */
+
+    public Void visitProgram(WACCParser.ProgramContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Program");
+        }
+        return visitChildren(ctx);
+    }
+
+    /* Functions to visit statements */
+
+    public Void visitVarinit(WACCParser.VarinitContext ctx) {
+        String varName = ctx.IDENT().toString();
+
+        if (DEBUG) {
+            System.out.println("-Variable init statement " + varName
+                            + " ");
+        }
+        visit(ctx.type());
+        visit(ctx.assignRHS());
+        return null;
+    }
+
+    public Void visitAssignment(WACCParser.AssignmentContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Assignment statement");
+        }
+        visit(ctx.assignLHS());
+        visit(ctx.assignRHS());
+        return null;
+    }
+
+    public Void visitReadstatement(WACCParser.ReadstatementContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Read statement");
+        }
+        visit(ctx.assignLHS());
+        return null;
+    }
+
+    public Void visitFreestatement(WACCParser.FreestatementContext ctx) {
+        // Can only free arrays and pairs
+        if (DEBUG) {
+            System.out.println("-Free statement");
+        }
+        visit(ctx.expr());
+        return null;
+    }
+
+    public Void visitReturnstatement(
+                    WACCParser.ReturnstatementContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Return statement");
+        }
+        visit(ctx.expr());
+        return null;
+    }
+
+    public Void visitExitstatement(WACCParser.ExitstatementContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Exit statement");
+        }
+        visit(ctx.expr());
+        return null;
+    }
+
+    public Void visitPrintstatement(
+                    WACCParser.PrintstatementContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Print statement");
+
+        }
+        visit(ctx.expr());
+        return null;
+    }
+
+    public Void visitPrintlnstatement(
+                    WACCParser.PrintlnstatementContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Print line statement ");
+        }
+        visit(ctx.expr());
+        return null;
+    }
+
+    public Void visitIfstatement(WACCParser.IfstatementContext ctx) {
+        if (DEBUG) {
+            System.out.println("-If statement");
+        }
+        visit(ctx.expr());
+        // giving a new scope for each stat
+        for (int i = 0; i < 2; i++) {
+            newScope();
+            visit(ctx.stat(i));
+            freeScope();
+        }
+        return null;
+    }
+
+    public Void visitWhilestatement(
+                    WACCParser.WhilestatementContext ctx) {
+        if (DEBUG) {
+            System.out.println("-While statement");
+        }
+        visit(ctx.expr());
+        newScope();
+        visit(ctx.stat());
+        freeScope();
+        return null;
+    }
+
+    public Void visitBeginendstatement(
+                    WACCParser.BeginendstatementContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Begin end statement ");
+        }
+        newScope();
+        visit(ctx.stat());
+        freeScope();
+        return null;
+    }
+
+    public Void visitStatementblock(
+                    WACCParser.StatementblockContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Statement block statement ");
+        }
+        visit(ctx.stat(0));
+        visit(ctx.stat(1));
+        return null;
+    }
+
+    /* Assign LHS and assign RHS */
+
+    public Void visitAssignrhsexpr(WACCParser.AssignrhsexprContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Assign RHS EXPR ");
+        }
+        visit(ctx.expr());
+        return null;
+    }
+
+    public Void visitAssignrhsarraylit(
+                    WACCParser.AssignrhsarraylitContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Assign RHS arraylit");
+        }
+        return visitChildren(ctx);
+    }
+
+    public Void visitArrayLiter(WACCParser.ArrayLiterContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Assign ArrayLiter");
+        }
+        List<ExprContext> exprs = ctx.expr();
+        for (ExprContext ectx : exprs) {
+            visit(ectx);
+        }
+        return null;
+    }
+
+    public Void visitAssignrhsnewpair(
+                    WACCParser.AssignrhsnewpairContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Assign RHS newpair");
+        }
+        visit(ctx.expr(0)); // Visit fst
+        visit(ctx.expr(1)); // Visit snd
+        return null;
+    }
+
+    public Void visitAssignrhspairelem(
+                    WACCParser.AssignrhspairelemContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Assign RHS pairelem");
+        }
+        visit(ctx.pairElem());
+        return null;
+    }
+
+    public Void visitArg_list(WACCParser.Arg_listContext ctx) {
+        if (DEBUG) {
+            System.out.println("-ArgList call ");
+        }
+
+        // List of args
+        List<ExprContext> args = ctx.expr();
+        for (int i = 0; i < args.size(); i++) {
+            visit(args.get(i));
+        }
+        return null;
+    }
+
+    public Void visitAssignrhscall(WACCParser.AssignrhscallContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Assign RHS call");
+        }
+        // TODO: [CODEGEN - Assignrhscall] Traversal removed at this point
+        return null;
+    }
+
+    public Void visitAssignlhsident(
+                    WACCParser.AssignlhsidentContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Assign LHS ident");
+        }
+        return null;
+    }
+
+    public Void visitAssignlhsarrayelem(
+                    WACCParser.AssignlhsarrayelemContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Assign LHS array elem");
+        }
+        return null;
+    }
+
+    public Void visitAssignlhspairelem(
+                    WACCParser.AssignlhspairelemContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Assign LHS pair elem");
+        }
+        visit(ctx.pairElem());
+        return null;
+    }
+
+    public Void visitPairfstelem(WACCParser.PairfstelemContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Assign Pair fst Elem");
+        }
+        visit(ctx.expr());
+        visitPairElem(ctx, true);
+        return null;
+    }
+
+    public Void visitPairsndelem(WACCParser.PairsndelemContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Assign Pair snd Elem");
+        }
+        visit(ctx.expr());
+        visitPairElem(ctx, false);
+        return null;
+    }
+
+    /* Type */
+
+    public Void visitTypebasetype(WACCParser.TypebasetypeContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Type BASETYPE");
+        }
+        return null;
+    }
+
+    public Void visitTypepairtype(WACCParser.TypepairtypeContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Type PAIRTYPE");
+        }
+        visit(ctx.pairtype());
+        return null;
+    }
+
+    public Void visitArraytype(WACCParser.ArraytypeContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Arraytype ");
+        }
+        visit(ctx.type());
+        return null;
+    }
+
+    public Void visitPairtype(WACCParser.PairtypeContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Pairtype ");
+        }
+        return null;
+    }
+
+    public Void visitPairetbasetype(
+                    WACCParser.PairetbasetypeContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Pairelementype basetype");
+        }
+        return null;
+    }
+
+    public Void visitPairetarraytype(
+                    WACCParser.PairetarraytypeContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Pairelementype arraytype");
+        }
+        visit(ctx.arraytype());
+        return null;
+    }
+
+    public Void visitPairetpair(WACCParser.PairetpairContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Pairelementype pair");
+
+        }
+        return null;
+    }
+
+    public Void visitTerminal(TerminalNode node) {
+        if (DEBUG) {
+            System.out.println("-Terminal " + node.toString());
+        }
+        return null;
+    }
+
+    /* Visit expressions */
+    public Void visitIntegerliteral(
+                    WACCParser.IntegerliteralContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Int literal");
+        }
+        return null;
+    }
+
+    public Void visitBooleanliteral(
+                    WACCParser.BooleanliteralContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Boolean literal ");
+        }
+        return null;
+    }
+
+    public Void visitCharliteral(WACCParser.CharliteralContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Char literal");
+        }
+        return null;
+    }
+
+    public Void visitStringliteral(WACCParser.StringliteralContext ctx) {
+        if (DEBUG) {
+            System.out.println("-String literal");
+        }
+        return null;
+    }
+
+    public Void visitPairliteral(WACCParser.PairliteralContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Pair literal");
+        }
+        return null;
+    }
+
+    public Void visitIdentifier(WACCParser.IdentifierContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Identifier");
+        }
+        return null;
+    }
+
+    public Void visitArrayelement(WACCParser.ArrayelementContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Array elements");
+        }
+        visit(ctx.arrayElem());
+        return null;
+    }
+
+    public Void visitArrayElem(WACCParser.ArrayElemContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Arrayelem");
+        }
+        return null;
+    }
+
+    public Void visitUnaryoperator(WACCParser.UnaryoperatorContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Unary operator");
+        }
+        visit(ctx.expr());
+        return null;
+    }
+
+    public Void visitBinarymultipledivideoperator(
+                    WACCParser.BinarymultipledivideoperatorContext ctx) {
+        visitBinaryoperator(ctx, ctx.multiplyDivideOp().getText(),
+                        ctx.expr(0), ctx.expr(1));
+        return null;
+    }
+
+    public Void visitBinaryaddsubtractoperator(
+                    WACCParser.BinaryaddsubtractoperatorContext ctx) {
+        visitBinaryoperator(ctx, ctx.addSubtractOp().getText(),
+                        ctx.expr(0), ctx.expr(1));
+        return null;
+    }
+
+    public Void visitBinarycomparatoroperator(
+                    WACCParser.BinarycomparatoroperatorContext ctx) {
+        visitBinaryoperator(ctx, ctx.comparatorOp().getText(),
+                        ctx.expr(0), ctx.expr(1));
+        return null;
+    }
+
+    public Void visitBinaryequalityoperator(
+                    WACCParser.BinaryequalityoperatorContext ctx) {
+        visitBinaryoperator(ctx, ctx.equalityOp().getText(),
+                        ctx.expr(0), ctx.expr(1));
+        return null;
+    }
+
+    public Void visitBinarylogicalandoperator(
+                    WACCParser.BinarylogicalandoperatorContext ctx) {
+        visitBinaryoperator(ctx, ctx.logicalAndOp().getText(),
+                        ctx.expr(0), ctx.expr(1));
+        return null;
+    }
+
+    public Void visitBinarylogicaloroperator(
+                    WACCParser.BinarylogicaloroperatorContext ctx) {
+        visitBinaryoperator(ctx, ctx.logicalOrOp().getText(),
+                        ctx.expr(0), ctx.expr(1));
+        return null;
+    }
+
+    public Void visitBrackets(WACCParser.BracketsContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Brackets");
+        }
+        return visitChildren(ctx);
+    }
+
+    /* Visit function */
+
+    public Void visitParam_list(WACCParser.Param_listContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Param_list");
+        }
+        for (int i = 0; i < ctx.param().size(); i++) {
+            visit(ctx.param(i));
+        }
+        return null;
+    }
+
+    public Void visitParam(WACCParser.ParamContext ctx) {
+        if (DEBUG) {
+            System.out.println("-Param");
+        }
+        visit(ctx.type());
+        return null;
+    }
+
+    public Void visitFunc(WACCParser.FuncContext ctx) {
+        String functionName = ctx.IDENT().toString();
+        if (DEBUG) {
+            System.out.println("-Function: " + functionName);
+        }
+        FUNCTION func = null;
+        newScope();
+        // Add params in new scope
+        for (int i = 0; i < func.getParamSize(); i++) {
+            PARAM param = func.getParam(i);
+        }
+        currentFunctionName = functionName;
+        visit(ctx.stat());
+        freeScope();
+        currentFunctionName = "";
+        return null;
+    }
+}

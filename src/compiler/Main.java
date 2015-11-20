@@ -1,4 +1,4 @@
-package frontend;
+package compiler;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -57,7 +57,8 @@ public class Main {
         errorMessages.addAll(synVisitor.getErrorMessages());
 
         int syntaxErrorCount = errorMessages.size();
-
+        
+        System.err.println("-- Compiling...");
         if (syntaxErrorCount > 0) {
             System.err.println("Errors detected during compilation! Exit code 100 returned.");
             for (String errorMessage : errorMessages) {
@@ -69,7 +70,13 @@ public class Main {
             System.exit(100);
         }
 
+        // No syntax errors found, do semantic checks
         SemanticVisitor semVisitor = new SemanticVisitor();
         semVisitor.visit(tree);
+        
+        // No semantic errors found, being generating code
+        CodeGenVisitor codeVisitor = new CodeGenVisitor();
+        codeVisitor.visit(tree);
+        System.err.println("-- Compile success");
     }
 }

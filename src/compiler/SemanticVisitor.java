@@ -1,4 +1,4 @@
-package frontend;
+package compiler;
 
 import java.util.Arrays;
 import java.util.List;
