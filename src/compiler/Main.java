@@ -17,7 +17,9 @@ import antlr.WACCLexer;
 import antlr.WACCParser;
 
 public class Main {
-    public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException {
+    public static void main(String[] args)
+                    throws FileNotFoundException,
+                    UnsupportedEncodingException {
         String inputFile = args[0];
 
         // Load file/input stream into ANTLRInputStream input
@@ -80,16 +82,18 @@ public class Main {
         // No semantic errors found, being generating code
         CodeGenVisitor codeVisitor = new CodeGenVisitor();
         codeVisitor.visit(tree);
-        
+
         // Print the assembly code
         List<String> data = codeVisitor.getData();
         List<String> text = codeVisitor.getText();
-        
-        String filename = args[0].substring(args[0].lastIndexOf("\\") + 1);
-        filename = args[0].substring(0, args[0].lastIndexOf(".")) + ".s";
+
+        String filename = inputFile.substring(inputFile
+                        .lastIndexOf("/") + 1);
+        filename = filename.substring(0, filename.lastIndexOf("."))
+                        + ".s";
         PrintWriter writer = new PrintWriter(filename, "UTF-8");
-        
-        if(!data.isEmpty()) {
+
+        if (!data.isEmpty()) {
             // Print data array
         } else {
             writer.write(".text\n");
@@ -97,13 +101,14 @@ public class Main {
             writer.write(".global main\n");
             for (String s : text) {
                 char firstChar = s.charAt(0);
-                if ((firstChar >= 'A' && firstChar <= 'Z') || firstChar == '.') {
+                if ((firstChar >= 'A' && firstChar <= 'Z')
+                                || firstChar == '.') {
                     writer.write("    ");
                 }
                 writer.write(s + "\n");
             }
         }
-        
+
         writer.close();
         System.err.println("-- Finished");
     }
