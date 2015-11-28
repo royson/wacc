@@ -1,8 +1,11 @@
 package compiler;
 
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.util.List;
 
 import org.antlr.v4.runtime.ANTLRErrorListener;
@@ -14,7 +17,7 @@ import antlr.WACCLexer;
 import antlr.WACCParser;
 
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException {
         String inputFile = args[0];
 
         // Load file/input stream into ANTLRInputStream input
@@ -57,7 +60,7 @@ public class Main {
         errorMessages.addAll(synVisitor.getErrorMessages());
 
         int syntaxErrorCount = errorMessages.size();
-        
+
         System.err.println("-- Compiling...");
         if (syntaxErrorCount > 0) {
             System.err.println("Errors detected during compilation! Exit code 100 returned.");
@@ -73,10 +76,35 @@ public class Main {
         // No syntax errors found, do semantic checks
         SemanticVisitor semVisitor = new SemanticVisitor();
         semVisitor.visit(tree);
-        
+
         // No semantic errors found, being generating code
         CodeGenVisitor codeVisitor = new CodeGenVisitor();
         codeVisitor.visit(tree);
-        System.err.println("-- Compile success");
+        
+        // Print the assembly code
+        List<String> data = codeVisitor.getData();
+        List<String> text = codeVisitor.getText();
+        
+        String filename = args[0].substring(args[0].lastIndexOf("\\") + 1);
+        filename = args[0].substring(0, args[0].lastIndexOf(".")) + ".s";
+        PrintWriter writer = new PrintWriter(filename, "UTF-8");
+        
+        if(!data.isEmpty()) {
+            // Print data array
+        } else {
+            writer.write(".text\n");
+            writer.write("\n");
+            writer.write(".global main\n");
+            for (String s : text) {
+                char firstChar = s.charAt(0);
+                if ((firstChar >= 'A' && firstChar <= 'Z') || firstChar == '.') {
+                    writer.write("    ");
+                }
+                writer.write(s + "\n");
+            }
+        }
+        
+        writer.close();
+        System.err.println("-- Finished");
     }
 }

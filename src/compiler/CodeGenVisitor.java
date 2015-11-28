@@ -1,5 +1,6 @@
 package compiler;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Stack;
@@ -28,7 +29,19 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
     private String[] primitiveTypes = { INT, BOOL, CHAR, STRING };
 
-    private boolean DEBUG = false;
+    private boolean DEBUG = true;
+
+    // Storage of program
+    private List<String> text = new ArrayList<String>();
+    private List<String> data = new ArrayList<String>();
+
+    public List<String> getText() {
+        return text;
+    }
+
+    public List<String> getData() {
+        return data;
+    }
 
     /* Helper functions */
     private void printStack() {
@@ -94,7 +107,16 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Program");
         }
-        return visitChildren(ctx);
+        // TODO: This has to be modified, cannot just throw main first for
+        // functions
+        text.add("main:");
+        text.add("PUSH {lr}");
+
+        visitChildren(ctx);
+
+        text.add("POP {pc}");
+        text.add(".ltorg");
+        return null;
     }
 
     /* Functions to visit statements */
@@ -151,6 +173,9 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Exit statement");
         }
         visit(ctx.expr());
+        text.add("MOV r0, r4");
+        text.add("BL exit");
+        text.add("LDR r0, =0");
         return null;
     }
 
@@ -402,6 +427,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Int literal");
         }
+        text.add("LDR r4, =" + ctx.getText());
         return null;
     }
 
