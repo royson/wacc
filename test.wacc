@@ -1,10 +1,16 @@
-# simple string variable declaration
+# variable can have _ in their names
 
 # Output:
 # #empty#
 
+# Exit:
+# 19
+
 # Program:
 
 begin
-  string s = "Hello World!"
+  int an_underscore = 19 ;
+  int y = 5 ;
+  bool x = true ;
+  exit an_underscore
 end

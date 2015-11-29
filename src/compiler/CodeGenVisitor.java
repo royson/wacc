@@ -43,6 +43,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
     // Stuff needed by Codegenerator
     private int messageCount = 0;
+    private int branchCount = 0;
 
     public List<String> getText() {
         return text;
@@ -308,16 +309,29 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     }
 
     private void addSP(String varType) {
-        if (varType.equals("INT") || varType.equals("CHAR[]")) {
+        switch (varType) {
+        case "INT":
+        case "CHAR[]":
             text.add("ADD sp, sp, #4");
+            break;
+        case "BOOL":
+        case "CHAR":
+            text.add("ADD sp, sp, #1");
+            break;
         }
     }
 
     private void subSP(String varType) {
-        if (varType.equals("INT") || varType.equals("CHAR[]")) {
+        switch (varType) {
+        case "INT":
+        case "CHAR[]":
             text.add("SUB sp, sp, #4");
+            break;
+        case "BOOL":
+        case "CHAR":
+            text.add("SUB sp, sp, #1");
+            break;
         }
-
     }
 
     public Void visitAssignment(WACCParser.AssignmentContext ctx) {
@@ -364,7 +378,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         visit(ctx.expr());
         text.add("MOV r0, r4");
         text.add("BL exit");
-        text.add("LDR r0, =0");
         return null;
     }
 
@@ -440,9 +453,23 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Assign RHS EXPR ");
         }
+        String varType = stack.pop();
         visit(ctx.expr());
-        text.add("STR r4, [sp]");
+        assignrhsexprhelper(varType);
         return null;
+    }
+
+    private void assignrhsexprhelper(String varType) {
+        switch (varType) {
+        case "INT":
+        case "CHAR[]":
+            text.add("STR r4, [sp]");
+            break;
+        case "CHAR":
+        case "BOOL":
+            text.add("STRB r4, [sp]");
+            break;
+        }
     }
 
     public Void visitAssignrhsarraylit(
@@ -647,6 +674,12 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Boolean literal ");
         }
+        String value = ctx.getText();
+        if (value.equals("true")) {
+            text.add("MOV r4, #1");
+        } else {
+            text.add("MOV r4, #0");
+        }
         return null;
     }
 
@@ -654,6 +687,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Char literal");
         }
+        text.add("MOV r4, #" + ctx.getText());
         return null;
     }
 
@@ -662,6 +696,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-String literal");
         }
         String message = ctx.getText();
+
         text.add("LDR r4, =msg" + messageCount);
         data.add("msg_" + messageCount);
         // Subtract 2 for the "" surrounding string
