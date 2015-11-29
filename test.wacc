@@ -1,13 +1,10 @@
-# exit with wrapped int 
+# simple skip program with in-line comment
 
 # Output:
 # #empty#
 
-# Exit:
-# 0
-
 # Program:
 
-begin
-  exit 256
+begin 
+  skip # I can write comments in-line 
 end

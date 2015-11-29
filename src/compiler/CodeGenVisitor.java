@@ -418,6 +418,12 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Terminal " + node.toString());
         }
+        String terminalString = node.toString();
+        
+        // Skip statement
+        if (terminalString.equals("skip")) {
+            text.add("LDR r0, =0");
+        }
         return null;
     }
 
