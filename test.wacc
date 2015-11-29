@@ -1,10 +1,14 @@
-# simple skip program with in-line comment
+# a simple function definition and call
 
 # Output:
-# #empty#
+# 0
 
 # Program:
 
-begin 
-  skip # I can write comments in-line 
+begin
+  int f() is
+    return 0 
+  end
+  int x = call f() ;
+  println x 
 end

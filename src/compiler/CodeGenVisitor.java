@@ -13,6 +13,7 @@ import semantics.PARAM;
 import semantics.SymbolTableWrapper;
 import antlr.WACCParser;
 import antlr.WACCParser.ExprContext;
+import antlr.WACCParser.FuncContext;
 import antlr.WACCParserBaseVisitor;
 
 public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
@@ -107,15 +108,28 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Program");
         }
-        // TODO: This has to be modified, cannot just throw main first for
-        // functions
+
+        // Traverse all functions first
+        List<FuncContext> funcList = ctx.func();
+        for (FuncContext f : funcList) {
+            visit(f);
+
+            // Visit parameters
+            if (f.param_list() != null) {
+                visit(f.param_list());
+            }
+        }
+        
+        // Go into the main program
         text.add("main:");
         text.add("PUSH {lr}");
 
-        visitChildren(ctx);
+        visit(ctx.stat());
 
+        //TODO: These statements may go under END
         text.add("POP {pc}");
         text.add(".ltorg");
+        visit(ctx.END());
         return null;
     }
 
@@ -419,7 +433,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Terminal " + node.toString());
         }
         String terminalString = node.toString();
-        
+
         // Skip statement
         if (terminalString.equals("skip")) {
             text.add("LDR r0, =0");
@@ -573,13 +587,14 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         FUNCTION func = null;
         newScope();
         // Add params in new scope
-        for (int i = 0; i < func.getParamSize(); i++) {
-            PARAM param = func.getParam(i);
-        }
+        // for (int i = 0; i < func.getParamSize(); i++) {
+        // PARAM param = func.getParam(i);
+        // }
         currentFunctionName = functionName;
         visit(ctx.stat());
         freeScope();
         currentFunctionName = "";
+        visit(ctx.END());
         return null;
     }
 }
