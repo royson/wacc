@@ -86,6 +86,7 @@ public class Main {
         // Print the assembly code
         List<String> data = codeVisitor.getData();
         List<String> text = codeVisitor.getText();
+        List<String> print = codeVisitor.getPrint();
 
         String filename = inputFile.substring(inputFile
                         .lastIndexOf("/") + 1);
@@ -95,21 +96,34 @@ public class Main {
 
         if (!data.isEmpty()) {
             // Print data array
-        } else {
-            writer.write(".text\n");
+            writer.write(".data\n");
             writer.write("\n");
-            writer.write(".global main\n");
-            for (String s : text) {
-                char firstChar = s.charAt(0);
-                if ((firstChar >= 'A' && firstChar <= 'Z')
-                                || firstChar == '.') {
-                    writer.write("    ");
-                }
-                writer.write(s + "\n");
+            
+            for (String s : data) {
+                printString(writer, s);
             }
+            writer.write("\n");
+        }
+        writer.write(".text\n");
+        writer.write("\n");
+        writer.write(".global main\n");
+        for (String s : text) {
+            printString(writer, s);
+        }
+        for (String s : print) {
+            printString(writer, s);
         }
 
         writer.close();
         System.err.println("-- Finished");
+    }
+
+    private static void printString(PrintWriter writer, String s) {
+        char firstChar = s.charAt(0);
+        if ((firstChar >= 'A' && firstChar <= 'Z')
+                        || firstChar == '.') {
+            writer.write("    ");
+        }
+        writer.write(s + "\n");
     }
 }

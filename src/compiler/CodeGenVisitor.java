@@ -8,9 +8,13 @@ import java.util.Stack;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
+import semantics.ARRAY;
 import semantics.FUNCTION;
+import semantics.IDENTIFIER;
+import semantics.PAIR;
 import semantics.PARAM;
 import semantics.SymbolTableWrapper;
+import semantics.VARIABLE;
 import antlr.WACCParser;
 import antlr.WACCParser.ExprContext;
 import antlr.WACCParser.FuncContext;
@@ -35,6 +39,10 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     // Storage of program
     private List<String> text = new ArrayList<String>();
     private List<String> data = new ArrayList<String>();
+    private List<String> print = new ArrayList<String>();
+
+    // Stuff needed by Codegenerator
+    private int messageCount = 0;
 
     public List<String> getText() {
         return text;
@@ -42,6 +50,10 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
     public List<String> getData() {
         return data;
+    }
+
+    public List<String> getPrint() {
+        return print;
     }
 
     /* Helper functions */
@@ -57,6 +69,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
                         currentST);
         currentST = st;
         saveStack = (Stack<String>) stack.clone();
+        pushLR();
     }
 
     @SuppressWarnings("unchecked")
@@ -65,39 +78,186 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         stack = (Stack<String>) saveStack.clone();
     }
 
+    private void pushLR() {
+        text.add("PUSH {lr}");
+    }
+
     private void visitPairElem(ParserRuleContext ctx, boolean fst) {
+
+        // type of pair is not needed
+        stack.pop();
+
+        String pairName = stack.peek();
+        IDENTIFIER obj = currentST.lookUpAllIdentifier(pairName);
+
+        if (!(obj instanceof PAIR)) {
+            // obj must be in local parameters
+            obj = currentST.lookUpAllParam(pairName);
+
+            if (!(obj instanceof PAIR)) {
+                Utils.semanticError(ctx, "Something went wrong");
+            }
+        }
+        PAIR pair = (PAIR) obj;
+        if (fst) {
+            stack.push(pair.getFstType());
+        } else {
+            stack.push(pair.getSndType());
+        }
     }
 
     // This function checks x in a[x] where arrayElemName is x;
     private void checkArrayElementVariableName(String arrayElemName,
                     ParserRuleContext ctx) {
+        String typeOfArrayElemName = Utils
+                        .getPrimitiveType(arrayElemName);
+        if (typeOfArrayElemName == null) {
+            // ArrayElemName is an object
+            stack.push(arrayElemName);
+
+            String arrayElemType = checkDefinedVariable(ctx);
+            stack.push(INT);
+            checkType(ctx, arrayElemName, arrayElemType);
+
+            // arrayElem is not needed in stack
+            stack.pop();
+        } else if (!typeOfArrayElemName.equals(INT)) {
+            stack.push(INT);
+            checkType(ctx, arrayElemName, typeOfArrayElemName);
+        } else {
+            // Pass validation
+        }
     }
 
     private void visitBinaryoperator(ParserRuleContext ctx,
                     String binaryOp, ParserRuleContext lhs,
                     ParserRuleContext rhs) {
-        if (DEBUG) {
-            System.out.println("-Binary operator");
-        }
+        // Visit LHS
         visit(lhs);
+
+        String lhsType = stack.pop();
+
+        // Visit RHS
         visit(rhs);
+
+        String rhsType = stack.pop();
+        String rhsExpr = stack.pop();
+
+        // check arguments for binary operation
+        String lhsExpr = stack.peek();
+
+        if (lhsType.contains("Pair(")) {
+            lhsType = "pair";
+        }
+        if (rhsType.contains("Pair(")) {
+            rhsType = "pair";
+        }
+
+        String returnType = checkBinaryOpArgument(ctx, lhs, binaryOp,
+                        lhsExpr, lhsType);
+        returnType = checkBinaryOpArgument(ctx, rhs, binaryOp,
+                        rhsExpr, rhsType);
+
+        // check if both argument types are the same
+        // mainly for '>' '>=' '<=' '<' cases
+        stack.push(rhsType);
+        checkType(ctx, lhsExpr, lhsType);
+
+        // Push the new expression into the stack
+        // remove unused expression
+        stack.pop();
+        String newExpr = (lhsExpr + binaryOp + rhsExpr).replaceAll(
+                        "\\s", "");
+        stack.push(newExpr);
+        stack.push(returnType);
     }
 
     private void checkBinaryOpType(ParserRuleContext ctx, String type) {
+        if (!(Arrays.asList(primitiveTypes).contains(type))) {
+            Utils.semanticError(ctx, "Incompatible type " + type);
+        }
     }
 
     private String checkBinaryOpArgument(ParserRuleContext ctx,
                     ParserRuleContext ectx, String binaryOp,
                     String binaryExpr, String binaryType) {
-        return null;
+        String returnType = "";
+
+        // check if rhsType match with operator's requirement
+        switch (binaryOp) {
+        case "*":
+        case "/":
+        case "%":
+        case " + ":
+        case " - ":
+            stack.push(INT);
+            checkType(ectx, binaryExpr, binaryType);
+            checkBinaryOpType(ctx, binaryType);
+            returnType = binaryType;
+            break;
+        case ">":
+        case ">=":
+        case "<":
+        case "<=":
+            if (!binaryType.equals(INT) && !binaryType.equals(CHAR)) {
+                stack.push(INT);
+                checkType(ectx, binaryExpr, binaryType);
+                checkBinaryOpType(ctx, binaryType);
+            }
+            returnType = BOOL;
+            break;
+        case "&&":
+        case "||":
+            stack.push(BOOL);
+            checkType(ectx, binaryExpr, binaryType);
+            checkBinaryOpType(ctx, binaryType);
+        case "==":
+        case "!=":
+            returnType = BOOL;
+            break;
+        }
+
+        return returnType;
     }
 
     private void checkType(ParserRuleContext ctx, String value,
                     String type) {
+        String compareType = stack.pop();
+
+        // Comparing null values to pairs
+        if ((Utils.isANullPair(type) && Utils.isAPair(compareType))
+                        || (Utils.isANullPair(compareType) && Utils
+                                        .isAPair(type))) {
+            return;
+        }
+
+        if (!compareType.equals(type)) {
+            String errorMessage = "Incompatible type at "
+                            + value.replaceAll("\\s", "");
+            errorMessage += " (expected: " + compareType;
+            errorMessage += ", actual: " + type + ")";
+            Utils.semanticError(ctx, errorMessage);
+        }
     }
 
     private String checkDefinedVariable(ParserRuleContext ctx) {
-        return null;
+        String curIdentToCheck = stack.peek();
+
+        // Object should take precedence
+        IDENTIFIER object = currentST
+                        .lookUpAllIdentifier(curIdentToCheck);
+
+        if (object == null) {
+            // Need to go up and find all params
+            object = currentST.lookUpAllParam(curIdentToCheck);
+
+            if (object == null) {
+                String errorMessage = "Variable " + curIdentToCheck
+                                + " is not defined in this scope";
+                Utils.semanticError(ctx, errorMessage);
+            }
+        }
+        return object.getType();
     }
 
     /* Write functions to traverse tree below here */
@@ -113,22 +273,17 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         List<FuncContext> funcList = ctx.func();
         for (FuncContext f : funcList) {
             visit(f);
-
-            // Visit parameters
-            if (f.param_list() != null) {
-                visit(f.param_list());
-            }
         }
-        
+
         // Go into the main program
         text.add("main:");
-        text.add("PUSH {lr}");
+        pushLR();
 
         visit(ctx.stat());
 
-        //TODO: These statements may go under END
-        text.add("POP {pc}");
-        text.add(".ltorg");
+        // TODO: Need to figure out where this LDR r0 =0 goes, will have clash
+        // on if statements
+        text.add("LDR r0, =0");
         visit(ctx.END());
         return null;
     }
@@ -143,8 +298,26 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
                             + " ");
         }
         visit(ctx.type());
+        String varType = stack.peek();
+        subSP(varType);
+
         visit(ctx.assignRHS());
+
+        addSP(varType);
         return null;
+    }
+
+    private void addSP(String varType) {
+        if (varType.equals("INT") || varType.equals("CHAR[]")) {
+            text.add("ADD sp, sp, #4");
+        }
+    }
+
+    private void subSP(String varType) {
+        if (varType.equals("INT") || varType.equals("CHAR[]")) {
+            text.add("SUB sp, sp, #4");
+        }
+
     }
 
     public Void visitAssignment(WACCParser.AssignmentContext ctx) {
@@ -179,6 +352,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Return statement");
         }
         visit(ctx.expr());
+        text.add("MOV r0, r4");
+        text.add("POP {pc}");
         return null;
     }
 
@@ -266,6 +441,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Assign RHS EXPR ");
         }
         visit(ctx.expr());
+        text.add("STR r4, [sp]");
         return null;
     }
 
@@ -377,6 +553,21 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Type BASETYPE");
         }
+        String arrayBrackets = "";
+        List<TerminalNode> brackets = ctx.LBRACK();
+
+        int i = 0;
+        while (i < brackets.size()) {
+            arrayBrackets += "[]";
+            i++;
+        }
+
+        String curType = Utils.renameStringToCharArray(ctx.BASETYPE()
+                        .toString().toUpperCase());
+        curType += arrayBrackets;
+
+        stack.push(curType);
+
         return null;
     }
 
@@ -434,9 +625,9 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
         String terminalString = node.toString();
 
-        // Skip statement
-        if (terminalString.equals("skip")) {
-            text.add("LDR r0, =0");
+        if (terminalString.equals("end")) {
+            text.add("POP {pc}");
+            text.add(".ltorg");
         }
         return null;
     }
@@ -470,6 +661,13 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-String literal");
         }
+        String message = ctx.getText();
+        text.add("LDR r4, =msg" + messageCount);
+        data.add("msg_" + messageCount);
+        // Subtract 2 for the "" surrounding string
+        data.add(".word " + (message.length() - 2));
+        data.add(".ascii " + message);
+        messageCount += 1;
         return null;
     }
 
@@ -584,12 +782,15 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Function: " + functionName);
         }
-        FUNCTION func = null;
+
+        text.add("f_" + functionName + ":");
         newScope();
-        // Add params in new scope
-        // for (int i = 0; i < func.getParamSize(); i++) {
-        // PARAM param = func.getParam(i);
-        // }
+
+        // Visit parameters
+        if (ctx.param_list() != null) {
+            visit(ctx.param_list());
+        }
+
         currentFunctionName = functionName;
         visit(ctx.stat());
         freeScope();

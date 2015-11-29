@@ -1,14 +1,10 @@
-# a simple function definition and call
+# simple string variable declaration
 
 # Output:
-# 0
+# #empty#
 
 # Program:
 
 begin
-  int f() is
-    return 0 
-  end
-  int x = call f() ;
-  println x 
+  string s = "Hello World!"
 end
