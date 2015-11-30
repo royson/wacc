@@ -51,7 +51,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     private int messageCount = 0;
     private int branchCount = 0;
 
-    // TODO: spPosition has to be modified on entering / exiting scope
+    // TODO: [Scope] spPosition has to be modified on entering / exiting scope
     private int spPosition = 0;
 
     public List<String> getText() {
@@ -436,7 +436,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             spPosition = 0;
         }
 
-        // TODO: Need to figure out where this LDR r0 =0 goes, will have clash
+        // TODO: [Program] Need to figure out where this LDR r0 =0 goes, will have clash
         // on if statements
         if (PASS == 2) {
             currentST.printST();
@@ -607,7 +607,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         stack.pop(); // Clear the name
 
         if (PASS == 2) {
-            text.add("MOV r0, r4"); // TODO: Print - figure out what this is for
+            text.add("MOV r0, r4"); // TODO: [Print] - figure out what this is for
             printHelper(varType);
             text.add("BL p_print_ln");
             addPrintLN();
@@ -631,6 +631,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             addPrintBOOL();
             text.add("BL p_print_bool");
             break;
+        case "CHAR":
+            text.add("BL putchar");
         }
     }
 
@@ -638,7 +640,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-If statement");
         }
-        // TODO: If statements removed for now
+        // TODO: [Z] If statements removed for now
         // visit(ctx.expr());
         // // giving a new scope for each stat
         // for (int i = 0; i < 2; i++) {
@@ -654,7 +656,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-While statement");
         }
-        // TODO: While statement removed for now
+        // TODO: [Z] While statement removed for now
         // visit(ctx.expr());
         // newScope();
         // visit(ctx.stat());
@@ -667,7 +669,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Begin end statement ");
         }
-        // TODO: Begin-end statement removed for now
+        // TODO: [Z] Begin-end statement removed for now
         // newScope();
         // visit(ctx.stat());
         // freeScope();
@@ -771,7 +773,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Assign RHS call");
         }
-        // TODO: [CODEGEN - Assignrhscall] Traversal removed at this point
+        // TODO: [Z] Assign RHS call Traversal removed at this point
         return null;
     }
 
@@ -948,12 +950,15 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Char literal");
         }
+        
+        String message = ctx.getText();
+        message = message.replace("\\", ""); // Handle escaped characters
 
-        stack.push(ctx.getText());
+        stack.push(message);
         stack.push("CHAR");
 
         if (PASS == 2) {
-            text.add("MOV r4, #" + ctx.getText());
+            text.add("MOV r4, #" + message);
         }
         return null;
     }
@@ -967,7 +972,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         stack.push(message);
         stack.push("CHAR[]");
 
-        // TODO: treat escape seq as 1 char
         if (PASS == 2) {
             text.add("LDR r4, =msg_" + messageCount);
             data.add("msg_" + messageCount + ":");
@@ -980,6 +984,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     }
 
     private int stringLength(String message) {
+        // TODO: [String] Improve support for escape characters
         message = message.replace("\\n", "n");
         int length = message.length();
         length -= 2;
