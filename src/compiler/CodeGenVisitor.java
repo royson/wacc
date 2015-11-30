@@ -172,7 +172,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         print.add("p_print_string:");
         print.add("PUSH {lr}");
         print.add("LDR r1, [r0]");
-        print.add("ADD r0, r0, #4");
+        print.add("ADD r2, r0, #4");
         print.add("LDR r0, =msg_" + messageCount);
         print.add("ADD r0, r0, #4");
         print.add("BL printf");
