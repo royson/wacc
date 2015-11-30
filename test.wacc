@@ -1,4 +1,4 @@
-# simple true boolean variable declaration
+# simple empty string variable declaration
 
 # Output:
 # #empty#
@@ -6,5 +6,5 @@
 # Program:
 
 begin
-  bool b = true
+  string s = ""
 end
