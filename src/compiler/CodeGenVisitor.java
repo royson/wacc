@@ -2,19 +2,18 @@ package compiler;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Stack;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
-import semantics.ARRAY;
-import semantics.FUNCTION;
 import semantics.IDENTIFIER;
 import semantics.PAIR;
-import semantics.PARAM;
+import semantics.SymbolTable;
 import semantics.SymbolTableWrapper;
-import semantics.VARIABLE;
 import antlr.WACCParser;
 import antlr.WACCParser.ExprContext;
 import antlr.WACCParser.FuncContext;
@@ -35,15 +34,25 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     private String[] primitiveTypes = { INT, BOOL, CHAR, STRING };
 
     private boolean DEBUG = true;
+    private int PASS = 1;
 
-    // Storage of program
+    // Storage of program - PASS 2
     private List<String> text = new ArrayList<String>();
     private List<String> data = new ArrayList<String>();
     private List<String> print = new ArrayList<String>();
 
+    // Generating information about scope - PASS 1
+    private Stack<String> scopeStack = new Stack<String>();
+    private String currentScope;
+
+    // First pass
+
     // Stuff needed by Codegenerator
     private int messageCount = 0;
     private int branchCount = 0;
+
+    // TODO: spPosition has to be modified on entering / exiting scope
+    private int spPosition = 0;
 
     public List<String> getText() {
         return text;
@@ -57,15 +66,30 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         return print;
     }
 
+    public int getPass() {
+        return PASS;
+    }
+
+    public void setPass(int PASS) {
+        this.PASS = PASS;
+        DEBUG = false;
+    }
+
     /* Helper functions */
     private void printStack() {
         System.out.println("-----PRINTING STACK-----");
         System.out.println(Arrays.toString(stack.toArray()));
+        System.out.println("Scope stack: "
+                        + Arrays.toString(scopeStack.toArray()));
         System.out.println("------------------------");
     }
 
+    private void printspPosition() {
+        System.out.println("STACK POINTER pos: " + spPosition);
+    }
+
     @SuppressWarnings("unchecked")
-    private void newScope() {
+    private void newScope(String scopeName) {
         SymbolTableWrapper<String> st = new SymbolTableWrapper<String>(
                         currentST);
         currentST = st;
@@ -266,9 +290,15 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     /* Visit the main program */
 
     public Void visitProgram(WACCParser.ProgramContext ctx) {
+        System.out.println("Current pass: " + PASS);
+        if (PASS == 1) {
+            currentST = new SymbolTableWrapper<String>();
+        }
         if (DEBUG) {
             System.out.println("-Program");
         }
+
+        scopeStack.push("main");
 
         // Traverse all functions first
         List<FuncContext> funcList = ctx.func();
@@ -276,15 +306,45 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             visit(f);
         }
 
-        // Go into the main program
-        text.add("main:");
-        pushLR();
+        int scopeSize = currentST.getScopeSize();
 
+        // Go into the main program
+        if (PASS == 2) {
+            text.add("main:");
+            pushLR();
+
+            // Allocate memory
+            if (scopeSize > 0) {
+                text.add("SUB sp, sp, #" + scopeSize);
+            }
+        }
+
+        currentScope = scopeStack.pop();
         visit(ctx.stat());
+
+        if (PASS == 1) {
+            // Update the positions of variables in the memory
+            HashMap<String, Integer> stHashMap = currentST
+                            .getStLabel().getSt();
+            for (String key : stHashMap.keySet()) {
+                stHashMap.put(key, spPosition - stHashMap.get(key));
+            }
+            currentST.setScopeSize(spPosition);
+            spPosition = 0;
+        }
 
         // TODO: Need to figure out where this LDR r0 =0 goes, will have clash
         // on if statements
-        text.add("LDR r0, =0");
+        if (PASS == 2) {
+            currentST.printST();
+
+            // Deallocate memory
+            if (scopeSize > 0) {
+                text.add("SUB sp, sp, #" + scopeSize);
+            }
+
+            text.add("LDR r0, =0");
+        }
         visit(ctx.END());
         return null;
     }
@@ -294,44 +354,31 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitVarinit(WACCParser.VarinitContext ctx) {
         String varName = ctx.IDENT().toString();
 
+        // TODO: Write this function correctly
+
         if (DEBUG) {
             System.out.println("-Variable init statement " + varName
                             + " ");
         }
+
+        stack.push(varName);
         visit(ctx.type());
         String varType = stack.peek();
-        subSP(varType);
 
+        if (PASS == 1) {
+            spPosition += addSP(varType);
+            currentST.addLabel(varName, spPosition);
+        }
         visit(ctx.assignRHS());
 
-        addSP(varType);
         return null;
     }
 
-    private void addSP(String varType) {
-        switch (varType) {
-        case "INT":
-        case "CHAR[]":
-            text.add("ADD sp, sp, #4");
-            break;
-        case "BOOL":
-        case "CHAR":
-            text.add("ADD sp, sp, #1");
-            break;
+    private int addSP(String varType) {
+        if (varType.equals("BOOL") || varType.equals("CHAR")) {
+            return 1;
         }
-    }
-
-    private void subSP(String varType) {
-        switch (varType) {
-        case "INT":
-        case "CHAR[]":
-            text.add("SUB sp, sp, #4");
-            break;
-        case "BOOL":
-        case "CHAR":
-            text.add("SUB sp, sp, #1");
-            break;
-        }
+        return 4;
     }
 
     public Void visitAssignment(WACCParser.AssignmentContext ctx) {
@@ -366,8 +413,10 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Return statement");
         }
         visit(ctx.expr());
-        text.add("MOV r0, r4");
-        text.add("POP {pc}");
+        if (PASS == 2) {
+            text.add("MOV r0, r4");
+            text.add("POP {pc}");
+        }
         return null;
     }
 
@@ -376,8 +425,10 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Exit statement");
         }
         visit(ctx.expr());
-        text.add("MOV r0, r4");
-        text.add("BL exit");
+        if (PASS == 2) {
+            text.add("MOV r0, r4");
+            text.add("BL exit");
+        }
         return null;
     }
 
@@ -404,13 +455,14 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-If statement");
         }
-        visit(ctx.expr());
-        // giving a new scope for each stat
-        for (int i = 0; i < 2; i++) {
-            newScope();
-            visit(ctx.stat(i));
-            freeScope();
-        }
+        // TODO: If statements removed for now
+        // visit(ctx.expr());
+        // // giving a new scope for each stat
+        // for (int i = 0; i < 2; i++) {
+        // newScope();
+        // visit(ctx.stat(i));
+        // freeScope();
+        // }
         return null;
     }
 
@@ -419,10 +471,11 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-While statement");
         }
-        visit(ctx.expr());
-        newScope();
-        visit(ctx.stat());
-        freeScope();
+        // TODO: While statement removed for now
+        // visit(ctx.expr());
+        // newScope();
+        // visit(ctx.stat());
+        // freeScope();
         return null;
     }
 
@@ -431,9 +484,10 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Begin end statement ");
         }
-        newScope();
-        visit(ctx.stat());
-        freeScope();
+        // TODO: Begin-end statement removed for now
+        // newScope();
+        // visit(ctx.stat());
+        // freeScope();
         return null;
     }
 
@@ -453,23 +507,27 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Assign RHS EXPR ");
         }
+        // TODO: Write this function properly
         String varType = stack.pop();
+        String varName = stack.pop();
+        int offset = currentST.lookUpAllLabel(varName);
         visit(ctx.expr());
-        assignrhsexprhelper(varType);
-        return null;
-    }
-
-    private void assignrhsexprhelper(String varType) {
-        switch (varType) {
-        case "INT":
-        case "CHAR[]":
-            text.add("STR r4, [sp]");
-            break;
-        case "CHAR":
-        case "BOOL":
-            text.add("STRB r4, [sp]");
-            break;
+        if (PASS == 2) {
+            if (varType.equals("BOOL") || varType.equals("CHAR")) {
+                if (offset != 0) {
+                    text.add("STRB r4, [sp, #" + offset + "]");
+                } else {
+                    text.add("STRB r4, [sp]");
+                }
+            } else {
+                if (offset != 0) {
+                    text.add("STR r4, [sp, #" + offset + "]");
+                } else {
+                    text.add("STR r4, [sp]");
+                }
+            }
         }
+        return null;
     }
 
     public Void visitAssignrhsarraylit(
@@ -652,9 +710,11 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
         String terminalString = node.toString();
 
-        if (terminalString.equals("end")) {
-            text.add("POP {pc}");
-            text.add(".ltorg");
+        if (PASS == 2) {
+            if (terminalString.equals("end")) {
+                text.add("POP {pc}");
+                text.add(".ltorg");
+            }
         }
         return null;
     }
@@ -665,7 +725,9 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Int literal");
         }
-        text.add("LDR r4, =" + ctx.getText());
+        if (PASS == 2) {
+            text.add("LDR r4, =" + ctx.getText());
+        }
         return null;
     }
 
@@ -675,10 +737,12 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Boolean literal ");
         }
         String value = ctx.getText();
-        if (value.equals("true")) {
-            text.add("MOV r4, #1");
-        } else {
-            text.add("MOV r4, #0");
+        if (PASS == 2) {
+            if (value.equals("true")) {
+                text.add("MOV r4, #1");
+            } else {
+                text.add("MOV r4, #0");
+            }
         }
         return null;
     }
@@ -687,7 +751,9 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Char literal");
         }
-        text.add("MOV r4, #" + ctx.getText());
+        if (PASS == 2) {
+            text.add("MOV r4, #" + ctx.getText());
+        }
         return null;
     }
 
@@ -697,12 +763,14 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
         String message = ctx.getText();
 
-        text.add("LDR r4, =msg" + messageCount);
-        data.add("msg_" + messageCount);
-        // Subtract 2 for the "" surrounding string
-        data.add(".word " + (message.length() - 2));
-        data.add(".ascii " + message);
-        messageCount += 1;
+        if (PASS == 2) {
+            text.add("LDR r4, =msg" + messageCount);
+            data.add("msg_" + messageCount);
+            // Subtract 2 for the "" surrounding string
+            data.add(".word " + (message.length() - 2));
+            data.add(".ascii " + message);
+            messageCount += 1;
+        }
         return null;
     }
 
@@ -716,6 +784,14 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitIdentifier(WACCParser.IdentifierContext ctx) {
         if (DEBUG) {
             System.out.println("-Identifier");
+        }
+        if (PASS == 2) {
+            int offset = currentST.lookUpAllLabel(ctx.getText());
+            if (offset == 0) {
+                text.add("LDR r4, [sp]");
+            } else {
+                text.add("LDR r4, [sp, #" + offset + "]");
+            }
         }
         return null;
     }
@@ -819,7 +895,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
 
         text.add("f_" + functionName + ":");
-        newScope();
+        newScope(functionName);
 
         // Visit parameters
         if (ctx.param_list() != null) {

@@ -1,0 +1,21 @@
+# Simple conditional statement with int comparison test
+
+# Output:
+# correct
+
+# Program:
+
+begin
+  int a = 13;
+  int e = 5;   
+  if a == 13 
+  then
+    int b = 5 ; 
+    println "correct"
+  else 
+    int c = a ;
+    int d = 1 ;
+    println c ;
+    println a
+  fi
+end

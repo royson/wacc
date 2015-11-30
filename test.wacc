@@ -1,16 +1,13 @@
-# variable can have _ in their names
+# basic exit statement
 
 # Output:
 # #empty#
 
 # Exit:
-# 19
+# 7
 
 # Program:
 
 begin
-  int an_underscore = 19 ;
-  int y = 5 ;
-  bool x = true ;
-  exit an_underscore
+  exit 7
 end

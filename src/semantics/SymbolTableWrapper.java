@@ -5,13 +5,24 @@ public class SymbolTableWrapper<V> {
     SymbolTable<V, IDENTIFIER> stIdent;
     SymbolTable<V, FUNCTION> stFunc;
     SymbolTable<V, IDENTIFIER> stParam;
+    SymbolTable<V, Integer> stLabel;
 
     SymbolTableWrapper<V> encSymTable;
+    private int scopeSize = 0;
+
+    public int getScopeSize() {
+        return scopeSize;
+    }
+
+    public void setScopeSize(int scopeSize) {
+        this.scopeSize = scopeSize;
+    }
 
     public SymbolTableWrapper() {
         stIdent = new SymbolTable<V, IDENTIFIER>();
         stFunc = new SymbolTable<V, FUNCTION>();
         stParam = new SymbolTable<V, IDENTIFIER>();
+        stLabel = new SymbolTable<V, Integer>();
         this.encSymTable = null;
     }
 
@@ -19,6 +30,7 @@ public class SymbolTableWrapper<V> {
         stIdent = new SymbolTable<V, IDENTIFIER>();
         stFunc = new SymbolTable<V, FUNCTION>();
         stParam = new SymbolTable<V, IDENTIFIER>();
+        stLabel = new SymbolTable<V, Integer>();
         this.encSymTable = encSymTable;
     }
 
@@ -81,15 +93,46 @@ public class SymbolTableWrapper<V> {
         return null;
     }
 
+    public void addLabel(V name, Integer location) {
+        stLabel.add(name, location);
+    }
+
+    public Integer lookUpLabel(V name) {
+        return stLabel.lookUp(name);
+    }
+
+    public Integer lookUpAllLabel(V name) {
+        SymbolTableWrapper<V> temp = this;
+        while (temp != null) {
+
+            Integer obj = temp.stLabel.lookUp(name);
+            if (obj != null) {
+                return obj;
+            }
+            temp = temp.encSymTable;
+        }
+        return null;
+    }
+
+    public SymbolTable<V, Integer> getStLabel() {
+        return stLabel;
+    }
+
+    public void setStLabel(SymbolTable<V, Integer> stLabel) {
+        this.stLabel = stLabel;
+    }
+
     public SymbolTableWrapper<V> getEncSymTable() {
         return encSymTable;
     }
 
     public void printST() {
         System.out.println("----- Print ST -----");
+        System.out.println("Scopesize: " + scopeSize);
         System.out.println("ID: " + stIdent);
         System.out.println("Func: " + stFunc);
         System.out.println("Param: " + stParam);
+        System.out.println("Label: " + stLabel);
         System.out.println("--------------------");
     }
 }

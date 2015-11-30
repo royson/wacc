@@ -82,6 +82,8 @@ public class Main {
         // No semantic errors found, being generating code
         CodeGenVisitor codeVisitor = new CodeGenVisitor();
         codeVisitor.visit(tree);
+        codeVisitor.setPass(2);
+        codeVisitor.visit(tree);
 
         // Print the assembly code
         List<String> data = codeVisitor.getData();

@@ -5,6 +5,15 @@ import java.util.HashMap;
 public class SymbolTable<V, O> {
 
     HashMap<V, O> st;
+    
+    public HashMap<V, O> getSt() {
+        return st;
+    }
+
+    public void setSt(HashMap<V, O> st) {
+        this.st = st;
+    }
+
     SymbolTable<V, O> encSymTable;
 
     public SymbolTable() {
