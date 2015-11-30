@@ -164,8 +164,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         printSTRING = true;
         // Modify data
         data.add("msg_" + messageCount + ":");
-        data.add(".word 1");
-        data.add(".ascii  \"\\0\"");
+        data.add(".word 5");
+        data.add(".ascii  \"%.*s\\0\"");
 
         // Add the print instruction
         print.add("p_print_string:");
@@ -558,7 +558,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
         if (PASS == 1) {
             printHelperPass1(varType);
-            addPrintLN();
         }
 
         if (PASS == 2) {
@@ -950,7 +949,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
         stack.push(message);
         stack.push("CHAR[]");
-
+        
+        //TODO: treat escape seq as 1 char
         if (PASS == 2) {
             text.add("LDR r4, =msg_" + messageCount);
             data.add("msg_" + messageCount + ":");
