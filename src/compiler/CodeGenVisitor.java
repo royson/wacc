@@ -35,7 +35,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
     private String[] primitiveTypes = { INT, BOOL, CHAR, STRING };
 
-    private boolean DEBUG = true;
+    private boolean DEBUG = false;
     private int PASS = 1;
 
     // Storage of program - PASS 2
@@ -46,8 +46,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     // Generating information about scope - PASS 1
     private Stack<String> scopeStack = new Stack<String>();
     private String currentScope;
-
-    // First pass
 
     // Stuff needed by Codegenerator
     private int messageCount = 0;
@@ -74,7 +72,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
     public void setPass(int PASS) {
         this.PASS = PASS;
-        DEBUG = false;
+        DEBUG = true;
     }
 
     /* Helper functions */
@@ -107,6 +105,55 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
     private void pushLR() {
         text.add("PUSH {lr}");
+    }
+
+    // Print statements
+    private boolean printINT = false;
+    private boolean printLN = false;
+
+    private void addPrintINT() {
+        if (printINT) {
+            return;
+        }
+        printINT = true;
+        // Modify data
+        data.add("msg_" + messageCount + ":");
+        data.add(".word 3");
+        data.add(".ascii  \"%d\\0\"");
+
+        // Add the print instruction
+        print.add("p_print_int:");
+        print.add("PUSH {lr}");
+        print.add("MOV r1, r0");
+        print.add("LDR r0, =msg_" + messageCount);
+        print.add("ADD r0, r0, #4");
+        print.add("BL printf");
+        print.add("MOV r0, #0");
+        print.add("BL fflush");
+        print.add("POP {pc}");
+        messageCount += 1;
+    }
+
+    private void addPrintLN() {
+        if (printLN) {
+            return;
+        }
+        printLN = true;
+        // Modify data
+        data.add("msg_" + messageCount + ":");
+        data.add(".word 1");
+        data.add(".ascii  \"\\0\"");
+
+        // Add the print instruction
+        print.add("p_print_ln:");
+        print.add("PUSH {lr}");
+        print.add("LDR r0, =msg_" + messageCount);
+        print.add("ADD r0, r0, #4");
+        print.add("BL puts");
+        print.add("MOV r0, #0");
+        print.add("BL fflush");
+        print.add("POP {pc}");
+        messageCount += 1;
     }
 
     private void visitPairElem(ParserRuleContext ctx, boolean fst) {
@@ -378,8 +425,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitVarinit(WACCParser.VarinitContext ctx) {
         String varName = ctx.IDENT().toString();
 
-        // TODO: Write this function correctly
-
         if (DEBUG) {
             System.out.println("-Variable init statement " + varName
                             + " ");
@@ -471,6 +516,21 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
         }
         visit(ctx.expr());
+
+        // Clear the stack
+        String varType = stack.pop(); // Extract the type
+        stack.pop(); // Clear the name
+
+        if (PASS == 1) {
+            printHelperPass1(varType);
+            addPrintLN();
+        }
+
+        if (PASS == 2) {
+            text.add("MOV r0, r4");
+            printHelperPass2(varType);
+        }
+
         return null;
     }
 
@@ -480,7 +540,41 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Print line statement ");
         }
         visit(ctx.expr());
+
+        // Clear the stack
+        String varType = stack.pop(); // Extract the type
+        stack.pop(); // Clear the name
+
+        if (PASS == 1) {
+            printHelperPass1(varType);
+            addPrintLN();
+        }
+
+        if (PASS == 2) {
+            text.add("MOV r0, r4"); // TODO: Print - figure out what this is for
+            printHelperPass2(varType);
+            text.add("BL p_print_ln");
+        }
+
         return null;
+    }
+
+    // Adds the print functions into the code for output
+    private void printHelperPass1(String type) {
+        switch (type) {
+        case "INT":
+            addPrintINT();
+            break;
+        }
+    }
+
+    // Creates link to print functions in main code
+    private void printHelperPass2(String type) {
+        switch (type) {
+        case "INT":
+            text.add("BL p_print_int");
+            break;
+        }
     }
 
     public Void visitIfstatement(WACCParser.IfstatementContext ctx) {
@@ -539,8 +633,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Assign RHS EXPR ");
         }
-        printStack();
-        // TODO: Write this function properly
         String varType = stack.pop();
         String varName = stack.pop();
         int offset = currentST.lookUpAllLabel(varName);
@@ -761,7 +853,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Int literal");
         }
         if (PASS == 2) {
-            text.add("LDR r4, =" + ctx.getText());
+            text.add("LDR r4, =" + Integer.parseInt(ctx.getText()));
         }
         return null;
     }
@@ -820,6 +912,10 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Identifier");
         }
+
+        stack.push(ctx.IDENT().toString());
+        stack.push(checkDefinedVariable(ctx));
+
         if (PASS == 2) {
             int offset = currentST.lookUpAllLabel(ctx.getText());
             if (offset == 0) {
