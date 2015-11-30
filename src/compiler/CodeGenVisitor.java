@@ -10,10 +10,12 @@ import java.util.Stack;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
+import semantics.ARRAY;
 import semantics.IDENTIFIER;
 import semantics.PAIR;
 import semantics.SymbolTable;
 import semantics.SymbolTableWrapper;
+import semantics.VARIABLE;
 import antlr.WACCParser;
 import antlr.WACCParser.ExprContext;
 import antlr.WACCParser.FuncContext;
@@ -347,8 +349,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
     private void deallocateScopeMemory(int scopeSize) {
         if (scopeSize > 0) {
-            while(scopeSize > 0){
-                if(scopeSize >= 1024){
+            while (scopeSize > 0) {
+                if (scopeSize >= 1024) {
                     text.add("ADD sp, sp, #" + 1024);
                 } else {
                     text.add("ADD sp, sp, #" + scopeSize);
@@ -360,8 +362,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
     private void allocateScopeMemory(int scopeSize) {
         if (scopeSize > 0) {
-            while(scopeSize > 0){
-                if(scopeSize >= 1024){
+            while (scopeSize > 0) {
+                if (scopeSize >= 1024) {
                     text.add("SUB sp, sp, #" + 1024);
                 } else {
                     text.add("SUB sp, sp, #" + scopeSize);
@@ -390,6 +392,14 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (PASS == 1) {
             spPosition += addSP(varType);
             currentST.addLabel(varName, spPosition);
+
+            if (!varType.startsWith("Pair")
+                            && !(Utils.isAnArray(varType))) {
+                currentST.addIdentifier(varName,
+                                new VARIABLE(varType));
+            } else if (Utils.isAnArray(varType)) {
+                currentST.addIdentifier(varName, new ARRAY(varType));
+            }
         }
         visit(ctx.assignRHS());
 
@@ -529,6 +539,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Assign RHS EXPR ");
         }
+        printStack();
         // TODO: Write this function properly
         String varType = stack.pop();
         String varName = stack.pop();
@@ -616,6 +627,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Assign LHS ident");
         }
+        stack.push(ctx.IDENT().toString());
+        stack.push(checkDefinedVariable(ctx));
         return null;
     }
 
