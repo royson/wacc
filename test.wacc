@@ -1,13 +1,10 @@
-# basic exit statement
+# simple true boolean variable declaration
 
 # Output:
 # #empty#
 
-# Exit:
-# 7
-
 # Program:
 
 begin
-  exit 7
+  bool b = true
 end

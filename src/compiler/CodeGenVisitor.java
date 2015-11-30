@@ -340,7 +340,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
             // Deallocate memory
             if (scopeSize > 0) {
-                text.add("SUB sp, sp, #" + scopeSize);
+                text.add("ADD sp, sp, #" + scopeSize);
             }
 
             text.add("LDR r0, =0");
