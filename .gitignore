@@ -40,4 +40,7 @@
 bin/
 src/antlr/
 
+# ignore test
+test.wacc
+
 
