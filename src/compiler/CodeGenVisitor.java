@@ -246,7 +246,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         data.add(".ascii  \" %c\\0\"");
 
         // Add to print instruction
-        print.add("p_read_char");
+        print.add("p_read_char:");
         print.add("PUSH {lr}");
         print.add("MOV r1, r0");
         print.add("LDR r0, =msg_" + messageCount);
