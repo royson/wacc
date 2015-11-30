@@ -210,6 +210,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     }
 
     boolean readINT = false;
+    boolean readCHAR = false;
 
     private void addReadINT() {
         if (readINT) {
@@ -224,6 +225,28 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
         // Add to print instruction
         print.add("p_read_int:");
+        print.add("PUSH {lr}");
+        print.add("MOV r1, r0");
+        print.add("LDR r0, =msg_" + messageCount);
+        print.add("ADD r0, r0, #4");
+        print.add("BL scanf");
+        print.add("POP {pc}");
+        messageCount += 1;
+    }
+
+    private void addReadCHAR() {
+        if (readCHAR) {
+            return;
+        }
+        readCHAR = true;
+
+        // Modify data
+        data.add("msg_" + messageCount + ":");
+        data.add(".word 4");
+        data.add(".ascii  \" %c\\0\"");
+
+        // Add to print instruction
+        print.add("p_read_char");
         print.add("PUSH {lr}");
         print.add("MOV r1, r0");
         print.add("LDR r0, =msg_" + messageCount);
@@ -553,7 +576,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         String varType = stack.pop();
         String varName = stack.pop();
         if (PASS == 2) {
-            text.add("ADD r4, sp, #" + currentST.lookUpAllLabel(varName));
+            text.add("ADD r4, sp, #"
+                            + currentST.lookUpAllLabel(varName));
             text.add("MOV r0, r4");
             readHelper(varType);
         }
@@ -565,6 +589,10 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         case "INT":
             addReadINT();
             text.add("BL p_read_int");
+            break;
+        case "CHAR":
+            addReadCHAR();
+            text.add("BL p_read_char");
             break;
         }
     }
@@ -991,6 +1019,12 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
 
         String message = ctx.getText();
+        System.out.println(message);
+
+        // Null character
+        if (message.equals("'\\0'")) {
+            message = "0";
+        }
         message = message.replace("\\", ""); // Handle escaped characters
 
         stack.push(message);
@@ -1042,15 +1076,26 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Identifier");
         }
 
-        stack.push(ctx.IDENT().toString());
-        stack.push(checkDefinedVariable(ctx));
+        String varName = ctx.IDENT().toString();
+        stack.push(varName);
+
+        String varType = checkDefinedVariable(ctx);
+        stack.push(varType);
 
         if (PASS == 2) {
-            int offset = currentST.lookUpAllLabel(ctx.getText());
+            int offset = currentST.lookUpAllLabel(varName);
             if (offset == 0) {
-                text.add("LDR r4, [sp]");
+                if (varType.equals("CHAR")) {
+                    text.add("LDRSB r4, [sp]");
+                } else {
+                    text.add("LDR r4, [sp]");
+                }
             } else {
-                text.add("LDR r4, [sp, #" + offset + "]");
+                if (varType.equals("CHAR")) {
+                    text.add("LDRSB r4, [sp, #" + offset + "]");
+                } else {
+                    text.add("LDR r4, [sp, #" + offset + "]");
+                }
             }
         }
         return null;
