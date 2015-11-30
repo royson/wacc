@@ -556,13 +556,9 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         String varType = stack.pop(); // Extract the type
         stack.pop(); // Clear the name
 
-        if (PASS == 1) {
-            printHelperPass1(varType);
-        }
-
         if (PASS == 2) {
             text.add("MOV r0, r4");
-            printHelperPass2(varType);
+            printHelper(varType);
         }
 
         return null;
@@ -579,39 +575,25 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         String varType = stack.pop(); // Extract the type
         stack.pop(); // Clear the name
 
-        if (PASS == 1) {
-            printHelperPass1(varType);
-            addPrintLN();
-        }
-
         if (PASS == 2) {
             text.add("MOV r0, r4"); // TODO: Print - figure out what this is for
-            printHelperPass2(varType);
+            printHelper(varType);
             text.add("BL p_print_ln");
+            addPrintLN();
         }
 
         return null;
     }
 
-    // Adds the print functions into the code for output
-    private void printHelperPass1(String type) {
+    // Creates link to print functions in main code
+    private void printHelper(String type) {
         switch (type) {
         case "INT":
             addPrintINT();
-            break;
-        case "CHAR[]":
-            addPrintSTRING();
-            break;
-        }
-    }
-
-    // Creates link to print functions in main code
-    private void printHelperPass2(String type) {
-        switch (type) {
-        case "INT":
             text.add("BL p_print_int");
             break;
         case "CHAR[]":
+            addPrintSTRING();
             text.add("BL p_print_string");
             break;
         }
@@ -949,8 +931,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
         stack.push(message);
         stack.push("CHAR[]");
-        
-        //TODO: treat escape seq as 1 char
+
+        // TODO: treat escape seq as 1 char
         if (PASS == 2) {
             text.add("LDR r4, =msg_" + messageCount);
             data.add("msg_" + messageCount + ":");
@@ -963,7 +945,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     }
 
     private int stringLength(String message) {
-        message = message.replace("\\n","n");
+        message = message.replace("\\n", "n");
         int length = message.length();
         length -= 2;
         return length;
