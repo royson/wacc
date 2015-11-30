@@ -955,11 +955,18 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             text.add("LDR r4, =msg_" + messageCount);
             data.add("msg_" + messageCount + ":");
             // Subtract 2 for the "" surrounding string
-            data.add(".word " + (message.length() - 2));
+            data.add(".word " + stringLength(message));
             data.add(".ascii " + message);
             messageCount += 1;
         }
         return null;
+    }
+
+    private int stringLength(String message) {
+        message = message.replace("\\n","n");
+        int length = message.length();
+        length -= 2;
+        return length;
     }
 
     public Void visitPairliteral(WACCParser.PairliteralContext ctx) {
