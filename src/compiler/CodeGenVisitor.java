@@ -314,9 +314,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             pushLR();
 
             // Allocate memory
-            if (scopeSize > 0) {
-                text.add("SUB sp, sp, #" + scopeSize);
-            }
+            allocateScopeMemory(scopeSize);
         }
 
         currentScope = scopeStack.pop();
@@ -339,14 +337,38 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             currentST.printST();
 
             // Deallocate memory
-            if (scopeSize > 0) {
-                text.add("ADD sp, sp, #" + scopeSize);
-            }
+            deallocateScopeMemory(scopeSize);
 
             text.add("LDR r0, =0");
         }
         visit(ctx.END());
         return null;
+    }
+
+    private void deallocateScopeMemory(int scopeSize) {
+        if (scopeSize > 0) {
+            while(scopeSize > 0){
+                if(scopeSize >= 1024){
+                    text.add("ADD sp, sp, #" + 1024);
+                } else {
+                    text.add("ADD sp, sp, #" + scopeSize);
+                }
+                scopeSize -= 1024;
+            }
+        }
+    }
+
+    private void allocateScopeMemory(int scopeSize) {
+        if (scopeSize > 0) {
+            while(scopeSize > 0){
+                if(scopeSize >= 1024){
+                    text.add("SUB sp, sp, #" + 1024);
+                } else {
+                    text.add("SUB sp, sp, #" + scopeSize);
+                }
+                scopeSize -= 1024;
+            }
+        }
     }
 
     /* Functions to visit statements */
