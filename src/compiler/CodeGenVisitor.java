@@ -111,6 +111,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     private boolean printINT = false;
     private boolean printLN = false;
     private boolean printSTRING = false;
+    private boolean printBOOL = false;
 
     private void addPrintINT() {
         if (printINT) {
@@ -179,6 +180,36 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         print.add("BL fflush");
         print.add("POP {pc}");
         messageCount += 1;
+    }
+
+    private void addPrintBOOL() {
+        if (printBOOL) {
+            return;
+        }
+        printBOOL = true;
+        int trueCnt = messageCount;
+        int falseCnt = messageCount + 1;
+        
+        data.add("msg_" + trueCnt + ":");
+        data.add(".word 5");
+        data.add(".ascii  \"true\\0\"");
+        
+        data.add("msg_" + falseCnt + ":");
+        data.add(".word 6");
+        data.add(".ascii  \"false\\0\"");
+
+        // Modify data
+        print.add("p_print_bool:");
+        print.add("PUSH {lr}");
+        print.add("CMP r0, #0");
+        print.add("LDRNE r0, =msg_" + trueCnt);
+        print.add("LDREQ r0, =msg_" + falseCnt);
+        print.add("ADD r0, r0, #4");
+        print.add("BL printf");
+        print.add("MOV r0, #0");
+        print.add("BL fflush");
+        print.add("POP {pc}");
+        messageCount += 2;
     }
 
     private void visitPairElem(ParserRuleContext ctx, boolean fst) {
@@ -595,6 +626,10 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         case "CHAR[]":
             addPrintSTRING();
             text.add("BL p_print_string");
+            break;
+        case "BOOL":
+            addPrintBOOL();
+            text.add("BL p_print_bool");
             break;
         }
     }
