@@ -765,7 +765,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
         if (PASS == 2) {
             text.add("LDR r4, =msg_" + messageCount);
-            data.add("msg_" + messageCount);
+            data.add("msg_" + messageCount + ":");
             // Subtract 2 for the "" surrounding string
             data.add(".word " + (message.length() - 2));
             data.add(".ascii " + message);
