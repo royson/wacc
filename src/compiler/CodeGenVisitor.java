@@ -176,7 +176,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             return;
         }
         printSTRING = true;
-
+        
         String message = "\"%.*s\\0\"";
         int cMsgCount = messageCount;
 
@@ -442,6 +442,9 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         case "&&":
             text.add("AND " + lhsReg + ", " + lhsReg + ", " + rhsReg);
             break;
+        case "||":
+            text.add("ORR " + lhsReg + ", " + lhsReg + ", " + rhsReg);
+            break;
         case "==":
             text.add("CMP " + lhsReg + ", " + rhsReg);
             text.add("MOVEQ " + lhsReg + ", " + "#1");
@@ -480,9 +483,28 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             text.add("MOV " + lhsReg + ", r0");
             addDivideByZeroError();
             break;
+        case "%":
+            text.add("MOV r0, " + lhsReg);
+            text.add("MOV r1, " + rhsReg);
+            text.add("BL p_check_divide_by_zero");
+            text.add("BL __aeabi_idivmod");
+            text.add("MOV " + lhsReg + ", r0");
+            addDivideByZeroError();
+            break;
         case " + ":
             text.add("ADDS " + lhsReg + ", " + lhsReg + ", " + rhsReg);
             text.add("BLVS p_throw_overflow_error");
+            addOverflowError();
+            break;
+        case " - ":
+            text.add("SUBS " + lhsReg + ", " + lhsReg + ", " + rhsReg);
+            text.add("BLVS p_throw_overflow_error");
+            addOverflowError();
+            break;
+        case "*":
+            text.add("SMULL " + lhsReg + ", " + rhsReg+", " + lhsReg +", " + rhsReg);
+            text.add("CMP " + rhsReg+", " + lhsReg +", ASR #31");
+            text.add("BLNE p_throw_overflow_error");
             addOverflowError();
             break;
         }
@@ -1259,7 +1281,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (PASS == 2) {
             text.add("LDR " + assignReg() + ", =msg_" + messageCount);
             addMessageToData(message);
-            messageCount += 1;
         }
         return null;
     }
