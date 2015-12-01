@@ -3,7 +3,6 @@ package compiler;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Stack;
 
@@ -13,7 +12,6 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 import semantics.ARRAY;
 import semantics.IDENTIFIER;
 import semantics.PAIR;
-import semantics.SymbolTable;
 import semantics.SymbolTableWrapper;
 import semantics.VARIABLE;
 import antlr.WACCParser;
@@ -386,9 +384,10 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         // Visit LHS
         String lhsReg = null, rhsReg = null;
         if (PASS == 2) {
-            assignReg();
+            // assignReg();
             lhsReg = currentReg;
-            System.out.println(lhs.getText() + " " + rhs.getText() + " " + lhsReg);
+            System.out.println(lhs.getText() + " " + rhs.getText()
+                            + " " + lhsReg);
         }
         visit(lhs);
         String lhsType = stack.pop();
@@ -397,7 +396,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (PASS == 2) {
             lockReg();
             if (!lhsReg.equals(lastReg)) {
-                assignReg();
+                // assignReg();
                 rhsReg = currentReg;
             } else {
                 text.add("PUSH {" + lhsReg + "}");
@@ -530,7 +529,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
     }
 
-    // TODO: [Expression - Binary Op] Modify to support all cases where out of reg
+    // TODO: [Expression - Binary Op] Support all cases where out of reg
     private void binaryOpOutOfRegHelper(String binaryOp,
                     String lhsReg, String rhsReg) {
         switch (binaryOp) {
@@ -587,11 +586,13 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             addDivideByZeroError();
             break;
         case " + ":
+            // Modified to support outOfReg
             text.add("ADDS " + lhsReg + ", " + rhsReg + ", " + lhsReg);
             text.add("BLVS p_throw_overflow_error");
             addOverflowError();
             break;
         case " - ":
+            // Modified to support outOfReg
             text.add("SUBS " + lhsReg + ", " + rhsReg + ", " + lhsReg);
             text.add("BLVS p_throw_overflow_error");
             addOverflowError();
@@ -712,7 +713,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     private boolean[] reg = new boolean[11];
     private String lastReg = "r" + (reg.length - 1);
     private String stackReg = "r11";
-    private String currentReg = "r4";
+    private String currentReg = "r4"; // TODO: [ZZ - HOTFIX] Starting register
+                                      // r4
 
     private void initReg() {
         Arrays.fill(reg, true);
@@ -730,8 +732,10 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
                 return;
             }
         }
-
-        System.out.println("-Out of registers");
+        
+        if (DEBUG) {
+            System.out.println("-Out of registers");
+        }
         // We have run out of registers
         currentReg = lastReg;
     }
@@ -742,9 +746,11 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             if (reg[i]) {
                 System.out.println("-Locking r" + i);
                 reg[i] = false;
+                assignReg();
                 return;
             }
         }
+        assignReg();
     }
 
     private void releaseReg() {
@@ -752,7 +758,50 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             if (!reg[i]) {
                 System.out.println("-Releasing r" + i);
                 reg[i] = true;
+                assignReg();
                 return;
+            }
+        }
+        assignReg();
+    }
+
+    /* Functions for dealing with memory */
+    private void storeToMemory(String varName, String varType) {
+        int offset = currentST.lookUpAllLabel(varName);
+//        assignReg();
+        if (varType.equals("BOOL") || varType.equals("CHAR")) {
+            if (offset != 0) {
+                text.add("STRB " + currentReg + ", [sp, #" + offset
+                                + "]");
+            } else {
+                text.add("STRB " + currentReg + ", [sp]");
+            }
+        } else {
+            if (offset != 0) {
+                text.add("STR " + currentReg + ", [sp, #" + offset
+                                + "]");
+            } else {
+                text.add("STR " + currentReg + ", [sp]");
+            }
+        }
+    }
+
+    private void loadFromMemory(String varName, String varType) {
+        int offset = currentST.lookUpAllLabel(varName);
+//        assignReg();
+        if (offset == 0) {
+            if (varType.equals("CHAR") || varType.equals("BOOL")) {
+                text.add("LDRSB " + currentReg + ", [sp]");
+            } else {
+                text.add("LDR " + currentReg + ", [sp]");
+            }
+        } else {
+            if (varType.equals("CHAR") || varType.equals("BOOL")) {
+                text.add("LDRSB " + currentReg + ", [sp, #" + offset
+                                + "]");
+            } else {
+                text.add("LDR " + currentReg + ", [sp, #" + offset
+                                + "]");
             }
         }
     }
@@ -804,11 +853,11 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             spPosition = 0;
         }
 
-        // TODO: [Program] Need to figure out where this LDR r0 =0 goes, will
-        // have clash
-        // on if statements
+        /*
+         * TODO: [Program] Need to figure out where this LDR r0 =0 goes, will
+         * have clash on if statements
+         */
         if (PASS == 2) {
-            currentST.printST();
 
             // Deallocate memory
             deallocateScopeMemory(scopeSize);
@@ -816,6 +865,11 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             text.add("LDR r0, =0");
         }
         visit(ctx.END());
+
+        if (DEBUG) {
+            printStack();
+            currentST.printST();
+        }
         return null;
     }
 
@@ -853,6 +907,13 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
     }
 
+    private int spaceForType(String varType) {
+        if (varType.equals("BOOL") || varType.equals("CHAR")) {
+            return 1;
+        }
+        return 4;
+    }
+
     /* Functions to visit statements */
 
     public Void visitVarinit(WACCParser.VarinitContext ctx) {
@@ -868,7 +929,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         String varType = stack.peek();
 
         if (PASS == 1) {
-            spPosition += addSP(varType);
+            spPosition += spaceForType(varType);
             currentST.addLabel(varName, spPosition);
 
             if (!varType.startsWith("Pair")
@@ -882,13 +943,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         visit(ctx.assignRHS());
 
         return null;
-    }
-
-    private int addSP(String varType) {
-        if (varType.equals("BOOL") || varType.equals("CHAR")) {
-            return 1;
-        }
-        return 4;
     }
 
     public Void visitAssignment(WACCParser.AssignmentContext ctx) {
@@ -908,7 +962,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         String varType = stack.pop();
         String varName = stack.pop();
         if (PASS == 2) {
-            assignReg();
+//            assignReg(); // Set the register after visiting expression
             text.add("ADD " + currentReg + ", sp, #"
                             + currentST.lookUpAllLabel(varName));
             text.add("MOV r0, " + currentReg);
@@ -952,7 +1006,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         String exprName = stack.pop();
 
         if (PASS == 2) {
-            assignReg();
+//            assignReg(); // Set the register after visiting expression
             text.add("MOV r0, " + currentReg + "");
             text.add("POP {pc}");
         }
@@ -970,7 +1024,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         String exprName = stack.pop();
 
         if (PASS == 2) {
-            assignReg();
+//            assignReg(); // Set the register after visiting expression
             text.add("MOV r0, " + currentReg + "");
             text.add("BL exit");
         }
@@ -990,7 +1044,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         stack.pop(); // Clear the name
 
         if (PASS == 2) {
-            assignReg();
+//            assignReg(); // Set the register after visiting expression
             text.add("MOV r0, " + currentReg + "");
             printHelper(varType);
         }
@@ -1011,7 +1065,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
         if (PASS == 2) {
             // TODO: [Print] - figure out what this is for
-            assignReg();
+//            assignReg(); // Set the register after visiting expression
             text.add("MOV r0, " + currentReg + "");
             printHelper(varType);
             text.add("BL p_print_ln");
@@ -1099,29 +1153,13 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
         String varType = stack.pop();
         String varName = stack.pop();
-        int offset = currentST.lookUpAllLabel(varName);
 
         visit(ctx.expr());
         String exprType = stack.pop();
         String exprName = stack.pop();
 
         if (PASS == 2) {
-            assignReg();
-            if (varType.equals("BOOL") || varType.equals("CHAR")) {
-                if (offset != 0) {
-                    text.add("STRB " + currentReg + ", [sp, #"
-                                    + offset + "]");
-                } else {
-                    text.add("STRB " + currentReg + ", [sp]");
-                }
-            } else {
-                if (offset != 0) {
-                    text.add("STR " + currentReg + ", [sp, #"
-                                    + offset + "]");
-                } else {
-                    text.add("STR " + currentReg + ", [sp]");
-                }
-            }
+            storeToMemory(varName, varType);
         }
         return null;
     }
@@ -1131,7 +1169,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Assign RHS arraylit");
         }
-        return visitChildren(ctx);
+        visit(ctx.arrayLiter());
+        return null;
     }
 
     public Void visitArrayLiter(WACCParser.ArrayLiterContext ctx) {
@@ -1139,8 +1178,46 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Assign ArrayLiter");
         }
         List<ExprContext> exprs = ctx.expr();
+
+        String arrayType = stack.pop();
+        String arrayName = stack.pop();
+
+        // Not sure if this is needed
+        arrayType = Utils.stripArrayTypeBracket(arrayType);
+        int typeSpace = spaceForType(arrayType);
+
+        int memory = exprs.size() * typeSpace + typeSpace;
+
+        // Allocate memory
+        if (PASS == 2) {
+            text.add("LDR r0, =" + memory);
+            text.add("BL malloc");
+
+            // Assign register for the location of the array
+            text.add("MOV " + currentReg + ", r0");
+
+            // Lock the register
+            lockReg();
+        }
+
         for (ExprContext ectx : exprs) {
             visit(ectx);
+            String exprType = stack.pop();
+            String exprName = stack.pop();
+
+            if (PASS == 2) {
+                // TODO: [Array literal] Figure out how to store
+                System.out.println(exprName + " " + exprType);
+                // storeToMemory(exprName, exprType);
+            }
+        }
+
+        if (PASS == 2) {
+            // Release the register
+            releaseReg();
+
+            // Store the array
+            storeToMemory(arrayName, arrayType);
         }
         return null;
     }
@@ -1411,23 +1488,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         stack.push(varType);
 
         if (PASS == 2) {
-            int offset = currentST.lookUpAllLabel(varName);
-            assignReg();
-            if (offset == 0) {
-                if (varType.equals("CHAR") || varType.equals("BOOL")) {
-                    text.add("LDRSB " + currentReg + ", [sp]");
-                } else {
-                    text.add("LDR " + currentReg + ", [sp]");
-                }
-            } else {
-                if (varType.equals("CHAR") || varType.equals("BOOL")) {
-                    text.add("LDRSB " + currentReg + ", [sp, #"
-                                    + offset + "]");
-                } else {
-                    text.add("LDR " + currentReg + ", [sp, #"
-                                    + offset + "]");
-                }
-            }
+            loadFromMemory(varName, varType);
         }
         return null;
     }
@@ -1490,7 +1551,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
 
         if (PASS == 2) {
-            assignReg();
+//            assignReg();
             String reg = currentReg;
             unaryOpHelper(unaryOp, reg);
         }
