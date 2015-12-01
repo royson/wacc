@@ -35,7 +35,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
     private String[] primitiveTypes = { INT, BOOL, CHAR, STRING };
 
-    private boolean DEBUG = true;
+    private boolean DEBUG = false;
     private int PASS = 1;
 
     // Storage of program - PASS 2
@@ -72,7 +72,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
     public void setPass(int PASS) {
         this.PASS = PASS;
-        DEBUG = false;
+        DEBUG = true;
     }
 
     /* Helper functions */
@@ -384,19 +384,35 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Binary operator " + binaryOp);
         }
         // Visit LHS
-        String lhsReg = assignReg();
+        String lhsReg = null, rhsReg = null;
+        if (PASS == 2) {
+            assignReg();
+            lhsReg = currentReg;
+            System.out.println(lhs.getText() + " " + rhs.getText() + " " + lhsReg);
+        }
         visit(lhs);
         String lhsType = stack.pop();
 
         // Lock register for LHS
-        lockReg();
-        String rhsReg = assignReg();
+        if (PASS == 2) {
+            lockReg();
+            if (!lhsReg.equals(lastReg)) {
+                assignReg();
+                rhsReg = currentReg;
+            } else {
+                text.add("PUSH {" + lhsReg + "}");
+                rhsReg = stackReg;
+            }
+            System.out.println(lhsReg + " " + rhsReg);
+        }
 
         // Visit RHS
         visit(rhs);
 
         // Release register for LHS
-        releaseReg();
+        if (PASS == 2) {
+            releaseReg();
+        }
 
         String rhsType = stack.pop();
         String rhsExpr = stack.pop();
@@ -412,9 +428,12 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
 
         if (PASS == 2) {
-            // TODO: [DEBUG] - Remove after finishing binaryOp
-            System.out.println(binaryOp);
-            binaryOpHelper(binaryOp, lhsReg, rhsReg);
+            if (rhsReg.equals(stackReg)) {
+                text.add("POP {" + stackReg + "}");
+                binaryOpOutOfRegHelper(binaryOp, lhsReg, rhsReg);
+            } else {
+                binaryOpHelper(binaryOp, lhsReg, rhsReg);
+            }
         }
 
         String returnType = checkBinaryOpArgument(ctx, lhs, binaryOp,
@@ -498,6 +517,82 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             break;
         case " - ":
             text.add("SUBS " + lhsReg + ", " + lhsReg + ", " + rhsReg);
+            text.add("BLVS p_throw_overflow_error");
+            addOverflowError();
+            break;
+        case "*":
+            text.add("SMULL " + lhsReg + ", " + rhsReg + ", "
+                            + lhsReg + ", " + rhsReg);
+            text.add("CMP " + rhsReg + ", " + lhsReg + ", ASR #31");
+            text.add("BLNE p_throw_overflow_error");
+            addOverflowError();
+            break;
+        }
+    }
+
+    // TODO: [Expression - Binary Op] Modify to support all cases where out of reg
+    private void binaryOpOutOfRegHelper(String binaryOp,
+                    String lhsReg, String rhsReg) {
+        switch (binaryOp) {
+        case "&&":
+            text.add("AND " + lhsReg + ", " + lhsReg + ", " + rhsReg);
+            break;
+        case "||":
+            text.add("ORR " + lhsReg + ", " + lhsReg + ", " + rhsReg);
+            break;
+        case "==":
+            text.add("CMP " + lhsReg + ", " + rhsReg);
+            text.add("MOVEQ " + lhsReg + ", " + "#1");
+            text.add("MOVNE " + lhsReg + ", " + "#0");
+            break;
+        case "!=":
+            text.add("CMP " + lhsReg + ", " + rhsReg);
+            text.add("MOVNE " + lhsReg + ", " + "#1");
+            text.add("MOVEQ " + lhsReg + ", " + "#0");
+            break;
+        case "<":
+            text.add("CMP " + lhsReg + ", " + rhsReg);
+            text.add("MOVLT " + lhsReg + ", " + "#1");
+            text.add("MOVGE " + lhsReg + ", " + "#0");
+            break;
+        case "<=":
+            text.add("CMP " + lhsReg + ", " + rhsReg);
+            text.add("MOVLE " + lhsReg + ", " + "#1");
+            text.add("MOVGT " + lhsReg + ", " + "#0");
+            break;
+        case ">":
+            text.add("CMP " + lhsReg + ", " + rhsReg);
+            text.add("MOVGT " + lhsReg + ", " + "#1");
+            text.add("MOVLE " + lhsReg + ", " + "#0");
+            break;
+        case ">=":
+            text.add("CMP " + lhsReg + ", " + rhsReg);
+            text.add("MOVGE " + lhsReg + ", " + "#1");
+            text.add("MOVLT " + lhsReg + ", " + "#0");
+            break;
+        case "/":
+            text.add("MOV r0, " + lhsReg);
+            text.add("MOV r1, " + rhsReg);
+            text.add("BL p_check_divide_by_zero");
+            text.add("BL __aeabi_idiv");
+            text.add("MOV " + lhsReg + ", r0");
+            addDivideByZeroError();
+            break;
+        case "%":
+            text.add("MOV r0, " + lhsReg);
+            text.add("MOV r1, " + rhsReg);
+            text.add("BL p_check_divide_by_zero");
+            text.add("BL __aeabi_idivmod");
+            text.add("MOV " + lhsReg + ", r1");
+            addDivideByZeroError();
+            break;
+        case " + ":
+            text.add("ADDS " + lhsReg + ", " + rhsReg + ", " + lhsReg);
+            text.add("BLVS p_throw_overflow_error");
+            addOverflowError();
+            break;
+        case " - ":
+            text.add("SUBS " + lhsReg + ", " + rhsReg + ", " + lhsReg);
             text.add("BLVS p_throw_overflow_error");
             addOverflowError();
             break;
@@ -614,7 +709,10 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
      */
 
     // Check the number of registers given
-    private boolean[] reg = new boolean[16];
+    private boolean[] reg = new boolean[11];
+    private String lastReg = "r" + (reg.length - 1);
+    private String stackReg = "r11";
+    private String currentReg = null;
 
     private void initReg() {
         Arrays.fill(reg, true);
@@ -625,22 +723,24 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
     }
 
-    private String assignReg() {
+    private void assignReg() {
         for (int i = 4; i < reg.length; i++) {
             if (reg[i]) {
-                return "r" + i;
+                currentReg = "r" + i;
+                return;
             }
         }
-        if (DEBUG) {
-            System.err.println("Ran out of registers");
-        }
-        return null;
+
+        System.out.println("-Out of registers");
+        // We have run out of registers
+        currentReg = lastReg;
     }
 
     // Use lockReg / releaseReg with caution
     private void lockReg() {
         for (int i = 4; i < reg.length; i++) {
             if (reg[i]) {
+                System.out.println("-Locking r" + i);
                 reg[i] = false;
                 return;
             }
@@ -650,6 +750,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     private void releaseReg() {
         for (int i = reg.length - 1; i >= 4; i--) {
             if (!reg[i]) {
+                System.out.println("-Releasing r" + i);
                 reg[i] = true;
                 return;
             }
@@ -807,9 +908,10 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         String varType = stack.pop();
         String varName = stack.pop();
         if (PASS == 2) {
-            text.add("ADD " + assignReg() + ", sp, #"
+            assignReg();
+            text.add("ADD " + currentReg + ", sp, #"
                             + currentST.lookUpAllLabel(varName));
-            text.add("MOV r0, " + assignReg() + "");
+            text.add("MOV r0, " + currentReg);
             readHelper(varType);
         }
         return null;
@@ -850,7 +952,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         String exprName = stack.pop();
 
         if (PASS == 2) {
-            text.add("MOV r0, " + assignReg() + "");
+            assignReg();
+            text.add("MOV r0, " + currentReg + "");
             text.add("POP {pc}");
         }
         return null;
@@ -867,7 +970,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         String exprName = stack.pop();
 
         if (PASS == 2) {
-            text.add("MOV r0, " + assignReg() + "");
+            assignReg();
+            text.add("MOV r0, " + currentReg + "");
             text.add("BL exit");
         }
         return null;
@@ -886,7 +990,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         stack.pop(); // Clear the name
 
         if (PASS == 2) {
-            text.add("MOV r0, " + assignReg() + "");
+            assignReg();
+            text.add("MOV r0, " + currentReg + "");
             printHelper(varType);
         }
 
@@ -906,7 +1011,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
         if (PASS == 2) {
             // TODO: [Print] - figure out what this is for
-            text.add("MOV r0, " + assignReg() + "");
+            assignReg();
+            text.add("MOV r0, " + currentReg + "");
             printHelper(varType);
             text.add("BL p_print_ln");
             addPrintLN();
@@ -1000,19 +1106,20 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         String exprName = stack.pop();
 
         if (PASS == 2) {
+            assignReg();
             if (varType.equals("BOOL") || varType.equals("CHAR")) {
                 if (offset != 0) {
-                    text.add("STRB " + assignReg() + ", [sp, #"
+                    text.add("STRB " + currentReg + ", [sp, #"
                                     + offset + "]");
                 } else {
-                    text.add("STRB " + assignReg() + ", [sp]");
+                    text.add("STRB " + currentReg + ", [sp]");
                 }
             } else {
                 if (offset != 0) {
-                    text.add("STR " + assignReg() + ", [sp, #"
+                    text.add("STR " + currentReg + ", [sp, #"
                                     + offset + "]");
                 } else {
-                    text.add("STR " + assignReg() + ", [sp]");
+                    text.add("STR " + currentReg + ", [sp]");
                 }
             }
         }
@@ -1222,7 +1329,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         stack.push("INT");
 
         if (PASS == 2) {
-            text.add("LDR " + assignReg() + ", =" + value);
+            text.add("LDR " + currentReg + ", =" + value);
         }
         return null;
     }
@@ -1239,9 +1346,9 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
         if (PASS == 2) {
             if (value.equals("true")) {
-                text.add("MOV " + assignReg() + ", #1");
+                text.add("MOV " + currentReg + ", #1");
             } else {
-                text.add("MOV " + assignReg() + ", #0");
+                text.add("MOV " + currentReg + ", #0");
             }
         }
         return null;
@@ -1264,7 +1371,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         stack.push("CHAR");
 
         if (PASS == 2) {
-            text.add("MOV " + assignReg() + ", #" + message);
+            text.add("MOV " + currentReg + ", #" + message);
         }
         return null;
     }
@@ -1279,7 +1386,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         stack.push("CHAR[]");
 
         if (PASS == 2) {
-            text.add("LDR " + assignReg() + ", =msg_" + messageCount);
+            text.add("LDR " + currentReg + ", =msg_" + messageCount);
             addMessageToData(message);
         }
         return null;
@@ -1305,18 +1412,19 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
         if (PASS == 2) {
             int offset = currentST.lookUpAllLabel(varName);
+            assignReg();
             if (offset == 0) {
                 if (varType.equals("CHAR") || varType.equals("BOOL")) {
-                    text.add("LDRSB " + assignReg() + ", [sp]");
+                    text.add("LDRSB " + currentReg + ", [sp]");
                 } else {
-                    text.add("LDR " + assignReg() + ", [sp]");
+                    text.add("LDR " + currentReg + ", [sp]");
                 }
             } else {
                 if (varType.equals("CHAR") || varType.equals("BOOL")) {
-                    text.add("LDRSB " + assignReg() + ", [sp, #"
+                    text.add("LDRSB " + currentReg + ", [sp, #"
                                     + offset + "]");
                 } else {
-                    text.add("LDR " + assignReg() + ", [sp, #"
+                    text.add("LDR " + currentReg + ", [sp, #"
                                     + offset + "]");
                 }
             }
@@ -1382,7 +1490,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
 
         if (PASS == 2) {
-            String reg = assignReg();
+            assignReg();
+            String reg = currentReg;
             unaryOpHelper(unaryOp, reg);
         }
 
