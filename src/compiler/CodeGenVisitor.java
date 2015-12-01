@@ -883,7 +883,12 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         text.add("ADD " + reg2 + ", sp, #0");
         text.add("LDR " + reg3 + ", =" + elemLoc);
         loadFromArrayElem(reg2, reg3, arrayElemType);
-        text.add("STR " + reg1 + ", [" + reg2 + "]");
+        if (arrayElemType.equals("CHAR")
+                        || arrayElemType.equals("BOOL")) {
+            text.add("STRB " + reg1 + ", [" + reg2 + "]");
+        } else {
+            text.add("STR " + reg1 + ", [" + reg2 + "]");
+        }
 
         // Clear the registers before releasing them
         text.add("LDR " + reg2 + ", =0");
