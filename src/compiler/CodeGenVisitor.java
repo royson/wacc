@@ -103,6 +103,20 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         stack = (Stack<String>) saveStack.clone();
     }
 
+    private void addMessageToData(String message) {
+        data.add("msg_" + messageCount + ":");
+        data.add(".word " + stringLength(message));
+        data.add(".ascii  " + message);
+    }
+
+    private int stringLength(String message) {
+        // TODO: [String] Improve support for escape characters
+        message = message.replace("\\", "");
+        int length = message.length();
+        length -= 2;
+        return length;
+    }
+
     // Print statements
     private boolean printINT = false;
     private boolean printLN = false;
@@ -115,11 +129,10 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
         printINT = true;
         // Modify data
-        data.add("msg_" + messageCount + ":");
-        data.add(".word 3");
-        data.add(".ascii  \"%d\\0\"");
+        String message = "\"%d\\0\"";
+        addMessageToData(message);
 
-        // Add to print instruction
+        // Add to print list
         print.add("p_print_int:");
         print.add("PUSH {lr}");
         print.add("MOV r1, r0");
@@ -138,11 +151,10 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
         printLN = true;
         // Modify data
-        data.add("msg_" + messageCount + ":");
-        data.add(".word 1");
-        data.add(".ascii  \"\\0\"");
+        String message = "\"\\0\"";
+        addMessageToData(message);
 
-        // Add to print instruction
+        // Add to print list
         print.add("p_print_ln:");
         print.add("PUSH {lr}");
         print.add("LDR r0, =msg_" + messageCount);
@@ -160,11 +172,10 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
         printSTRING = true;
         // Modify data
-        data.add("msg_" + messageCount + ":");
-        data.add(".word 5");
-        data.add(".ascii  \"%.*s\\0\"");
+        String message = "\"%.*s\\0\"";
+        addMessageToData(message);
 
-        // Add to print instruction
+        // Add to print list
         print.add("p_print_string:");
         print.add("PUSH {lr}");
         print.add("LDR r1, [r0]");
@@ -187,15 +198,12 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         int falseCnt = messageCount + 1;
 
         // Modify data
-        data.add("msg_" + trueCnt + ":");
-        data.add(".word 5");
-        data.add(".ascii  \"true\\0\"");
+        String trueStr = "\"true\\0\"";
+        String falseStr = "\"false\\0\"";
+        addMessageToData(trueStr);
+        addMessageToData(falseStr);
 
-        data.add("msg_" + falseCnt + ":");
-        data.add(".word 6");
-        data.add(".ascii  \"false\\0\"");
-
-        // Add to print instruction
+        // Add to print list
         print.add("p_print_bool:");
         print.add("PUSH {lr}");
         print.add("CMP r0, #0");
@@ -209,6 +217,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         messageCount += 2;
     }
 
+    // Read statements
     boolean readINT = false;
     boolean readCHAR = false;
 
@@ -219,11 +228,10 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         readINT = true;
 
         // Modify data
-        data.add("msg_" + messageCount + ":");
-        data.add(".word 3");
-        data.add(".ascii  \"%d\\0\"");
+        String message = "\"%d\\0\"";
+        addMessageToData(message);
 
-        // Add to print instruction
+        // Add to print list
         print.add("p_read_int:");
         print.add("PUSH {lr}");
         print.add("MOV r1, r0");
@@ -241,11 +249,10 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         readCHAR = true;
 
         // Modify data
-        data.add("msg_" + messageCount + ":");
-        data.add(".word 4");
-        data.add(".ascii  \" %c\\0\"");
+        String message = "\" %c\\0\"";
+        addMessageToData(message);
 
-        // Add to print instruction
+        // Add to print list
         print.add("p_read_char:");
         print.add("PUSH {lr}");
         print.add("MOV r1, r0");
@@ -256,6 +263,44 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         messageCount += 1;
     }
 
+    boolean checkDivideByZero = false;
+    boolean throwRuntimeError = false;
+
+    private void addCheckDivideByZero() {
+        if (checkDivideByZero) {
+            return;
+        }
+        checkDivideByZero = true;
+
+        // Modify data
+        String message = "\"DivideByZeroError: divide or modulo by zero\\n\\0\"";
+        addMessageToData(message);
+
+        // Add to print list
+        print.add("p_check_divide_by_zero:");
+        print.add("PUSH {lr}");
+        print.add("CMP r1, #0");
+        print.add("LDREQ r0, =msg_" + messageCount);
+        print.add("BLEQ p_throw_runtime_error");
+        print.add("POP {pc}");
+        messageCount += 1;
+        addThrowRuntimeError();
+    }
+
+    private void addThrowRuntimeError() {
+        if (throwRuntimeError) {
+            return;
+        }
+        throwRuntimeError = true;
+        
+        print.add("p_throw_runtime_error:");
+        print.add("BL p_print_string");
+        print.add("MOV r0, #-1");
+        print.add("BL exit");
+        addPrintSTRING();
+    }
+
+    // Other helper functions
     private void visitPairElem(ParserRuleContext ctx, boolean fst) {
 
         // type of pair is not needed
@@ -338,6 +383,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
 
         if (PASS == 2) {
+            System.out.println(binaryOp);
             binaryOpHelper(binaryOp, lhsReg, rhsReg);
         }
 
@@ -395,6 +441,14 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             text.add("CMP " + lhsReg + ", " + rhsReg);
             text.add("MOVGE " + lhsReg + ", " + "#1");
             text.add("MOVLT " + lhsReg + ", " + "#0");
+            break;
+        case "/":
+            text.add("MOV r0, " + lhsReg);
+            text.add("MOV r1, " + rhsReg);
+            text.add("BL p_check_divide_by_zero");
+            text.add("BL __aeabi_idiv");
+            text.add("MOV " + lhsReg + ", r0");
+            addCheckDivideByZero();
             break;
         }
     }
@@ -1169,21 +1223,10 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
         if (PASS == 2) {
             text.add("LDR " + assignReg() + ", =msg_" + messageCount);
-            data.add("msg_" + messageCount + ":");
-            // Subtract 2 for the "" surrounding string
-            data.add(".word " + stringLength(message));
-            data.add(".ascii " + message);
+            addMessageToData(message);
             messageCount += 1;
         }
         return null;
-    }
-
-    private int stringLength(String message) {
-        // TODO: [String] Improve support for escape characters
-        message = message.replace("\\n", "n");
-        int length = message.length();
-        length -= 2;
-        return length;
     }
 
     public Void visitPairliteral(WACCParser.PairliteralContext ctx) {
