@@ -176,7 +176,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             return;
         }
         printSTRING = true;
-        
+
         String message = "\"%.*s\\0\"";
         int cMsgCount = messageCount;
 
@@ -236,7 +236,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
         String message = "\"%d\\0\"";
         int cMsgCount = messageCount;
-        
+
         // Modify data
         addMessageToData(message);
 
@@ -258,7 +258,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
         String message = "\" %c\\0\"";
         int cMsgCount = messageCount;
-        
+
         // Modify data
         addMessageToData(message);
 
@@ -284,7 +284,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
         String message = "\"DivideByZeroError: divide or modulo by zero\\n\\0\"";
         int cMsgCount = messageCount;
-        
+
         // Modify data
         addMessageToData(message);
 
@@ -306,7 +306,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
         String message = "\"OverflowError: the result is too small/large to store in a 4-byte signed-integer.\\n\"";
         int cMsgCount = messageCount;
-        
+
         // Modify data
         addMessageToData(message);
 
@@ -502,8 +502,9 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             addOverflowError();
             break;
         case "*":
-            text.add("SMULL " + lhsReg + ", " + rhsReg+", " + lhsReg +", " + rhsReg);
-            text.add("CMP " + rhsReg+", " + lhsReg +", ASR #31");
+            text.add("SMULL " + lhsReg + ", " + rhsReg + ", "
+                            + lhsReg + ", " + rhsReg);
+            text.add("CMP " + rhsReg + ", " + lhsReg + ", ASR #31");
             text.add("BLNE p_throw_overflow_error");
             addOverflowError();
             break;
@@ -1252,7 +1253,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
 
         String message = ctx.getText();
-        System.out.println(message);
 
         // Null character
         if (message.equals("'\\0'")) {
@@ -1344,7 +1344,70 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Unary operator");
         }
         visit(ctx.expr());
+
+        String varType = stack.pop();
+        String varName = stack.peek();
+
+        String unaryOp = ctx.UNARYOP().toString();
+
+        // TODO: [ZZ - CLEANING] May be possible to remove this function
+        switch (unaryOp) {
+        case "!":
+            stack.push(BOOL);
+            checkType(ctx, varName, varType);
+            break;
+        case "-":
+            stack.push(INT);
+            checkType(ctx, varName, varType);
+            break;
+        case "len":
+            if (!Utils.isAnArray(varType)
+                            && !(varType.equals(STRING))) {
+                // if not array, raise the exception
+                stack.push("T[]");
+                checkType(ctx, varName, varType);
+            }
+            varType = INT;
+            break;
+        case "ord":
+            stack.push(CHAR);
+            checkType(ctx, varName, varType);
+            varType = INT;
+            break;
+        case "chr":
+            stack.push(INT);
+            checkType(ctx, varName, varType);
+            varType = CHAR;
+            break;
+        }
+
+        if (PASS == 2) {
+            String reg = assignReg();
+            unaryOpHelper(unaryOp, reg);
+        }
+
+        stack.push(varType);
         return null;
+    }
+
+    private void unaryOpHelper(String unaryOp, String reg) {
+        switch (unaryOp) {
+        case "!":
+            text.add("EOR " + reg + ", " + reg + ", #1");
+            break;
+        case "-":
+            text.add("RSBS " + reg + ", " + reg + ", #0");
+            text.add("BLVS p_throw_overflow_error");
+            addOverflowError();
+            break;
+        case "len":
+            // TODO: [Unary op] Implement length
+            break;
+        case "ord":
+            break;
+        case "chr":
+            break;
+        }
     }
 
     public Void visitBinarymultipledivideoperator(
