@@ -368,13 +368,13 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             break;
         case "==":
             text.add("CMP " + lhsReg + ", " + rhsReg);
-            text.add("MOVNE " + lhsReg + ", " + "#1");
-            text.add("MOVEQ " + lhsReg + ", " + "#0");
+            text.add("MOVEQ " + lhsReg + ", " + "#1");
+            text.add("MOVNE " + lhsReg + ", " + "#0");
             break;
         case "!=":
             text.add("CMP " + lhsReg + ", " + rhsReg);
-            text.add("MOVEQ " + lhsReg + ", " + "#1");
-            text.add("MOVNE " + lhsReg + ", " + "#0");
+            text.add("MOVNE " + lhsReg + ", " + "#1");
+            text.add("MOVEQ " + lhsReg + ", " + "#0");
             break;
         case "<":
             text.add("CMP " + lhsReg + ", " + rhsReg);
