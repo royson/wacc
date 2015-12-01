@@ -797,7 +797,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
     /* Functions for dealing with memory */
     private void storeToMemory(String varName, String varType) {
-        System.out.println(varName + " " + varType);
         int offset = currentST.lookUpAllLabel(varName);
         if (varType.equals("BOOL") || varType.equals("CHAR")) {
             if (offset != 0) {
@@ -818,8 +817,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
     private void storeArrayLitToMemory(String varName,
                     String varType, String arrayReg, int offset) {
-        // int offset = currentST.lookUpAllLabel(varName);
-        // assignReg();
         if (varType.equals("BOOL") || varType.equals("CHAR")) {
             if (offset != 0) {
                 text.add("STRB " + currentReg + ", [" + arrayReg
@@ -858,7 +855,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
     }
 
-    private void arrayAccess(String arrayReg, String elemReg,
+    private void loadFromArrayElem(String arrayReg, String elemReg,
                     String arrayElemType) {
         text.add("LDR " + arrayReg + ", [" + arrayReg + "]");
         text.add("MOV r0, " + elemReg);
@@ -874,6 +871,67 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
                             + elemReg + ", LSL #2");
         }
         addCheckArrayBounds();
+    }
+
+    private void storeToArrayElem(String arrayElemType, String elemLoc) {
+        String reg1 = currentReg;
+        lockReg();
+        String reg2 = currentReg;
+        lockReg();
+        String reg3 = currentReg;
+
+        text.add("ADD " + reg2 + ", sp, #0");
+        text.add("LDR " + reg3 + ", =" + elemLoc);
+        loadFromArrayElem(reg2, reg3, arrayElemType);
+        text.add("STR " + reg1 + ", [" + reg2 + "]");
+
+        // Clear the registers before releasing them
+        text.add("LDR " + reg2 + ", =0");
+        text.add("LDR " + reg3 + ", =0");
+
+        releaseReg();
+        releaseReg();
+    }
+
+    /*
+     * Deallocates memory for the given scope. Note that can only deallocate at
+     * most 1024 in one operation.
+     */
+    private void deallocateScopeMemory(int scopeSize) {
+        if (scopeSize > 0) {
+            while (scopeSize > 0) {
+                if (scopeSize >= 1024) {
+                    text.add("ADD sp, sp, #" + 1024);
+                } else {
+                    text.add("ADD sp, sp, #" + scopeSize);
+                }
+                scopeSize -= 1024;
+            }
+        }
+    }
+
+    /*
+     * Allocates memory for the given scope. Note that can only allocate at most
+     * 1024 in one operation.
+     */
+    private void allocateScopeMemory(int scopeSize) {
+        if (scopeSize > 0) {
+            while (scopeSize > 0) {
+                if (scopeSize >= 1024) {
+                    text.add("SUB sp, sp, #" + 1024);
+                } else {
+                    text.add("SUB sp, sp, #" + scopeSize);
+                }
+                scopeSize -= 1024;
+            }
+        }
+    }
+
+    private int spaceForType(String varType) {
+        if (varType.equals("BOOL") || varType.equals("CHAR")) {
+            return 1;
+        }
+        return 4;
     }
 
     /* Write functions to traverse tree below here */
@@ -939,47 +997,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         printStack();
         currentST.printST();
         return null;
-    }
-
-    /*
-     * Deallocates memory for the given scope. Note that can only deallocate at
-     * most 1024 in one operation.
-     */
-    private void deallocateScopeMemory(int scopeSize) {
-        if (scopeSize > 0) {
-            while (scopeSize > 0) {
-                if (scopeSize >= 1024) {
-                    text.add("ADD sp, sp, #" + 1024);
-                } else {
-                    text.add("ADD sp, sp, #" + scopeSize);
-                }
-                scopeSize -= 1024;
-            }
-        }
-    }
-
-    /*
-     * Allocates memory for the given scope. Note that can only allocate at most
-     * 1024 in one operation.
-     */
-    private void allocateScopeMemory(int scopeSize) {
-        if (scopeSize > 0) {
-            while (scopeSize > 0) {
-                if (scopeSize >= 1024) {
-                    text.add("SUB sp, sp, #" + 1024);
-                } else {
-                    text.add("SUB sp, sp, #" + scopeSize);
-                }
-                scopeSize -= 1024;
-            }
-        }
-    }
-
-    private int spaceForType(String varType) {
-        if (varType.equals("BOOL") || varType.equals("CHAR")) {
-            return 1;
-        }
-        return 4;
     }
 
     /* Functions to visit statements */
@@ -1242,27 +1259,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             }
         }
         return null;
-    }
-
-    private void storeToArrayElem(String arrayElemType, String elemLoc) {
-        // TODO Auto-generated method stub
-        String reg1 = currentReg;
-        lockReg();
-        String reg2 = currentReg;
-        lockReg();
-        String reg3 = currentReg;
-
-        text.add("ADD " + reg2 + ", sp, #0");
-        text.add("LDR " + reg3 + ", =" + elemLoc);
-        arrayAccess(reg2, reg3, arrayElemType);
-        text.add("STR " + reg1 + ", [" + reg2 + "]");
-
-        // Clear the registers before releasing them
-        text.add("LDR " + reg2 + ", =0");
-        text.add("LDR " + reg3 + ", =0");
-
-        releaseReg();
-        releaseReg();
     }
 
     public Void visitAssignrhsarraylit(
@@ -1693,7 +1689,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
 
         if (PASS == 2) {
-            arrayAccess(arrayReg, elemReg, arrayElemType);
+            loadFromArrayElem(arrayReg, elemReg, arrayElemType);
             if (arrayElemType.equals("CHAR")
                             || arrayElemType.equals("BOOL")) {
                 text.add("LDRSB " + arrayReg + ", [" + arrayReg + "]");
@@ -1775,6 +1771,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             break;
         case "len":
             // TODO: [Unary op] Implement length
+            text.add("LDR " + reg + ", [" + reg + "]");
             break;
         case "ord":
             break;
