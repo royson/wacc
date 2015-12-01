@@ -328,7 +328,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         String rhsExpr = stack.pop();
 
         // check arguments for binary operation
-        String lhsExpr = stack.pop();
+        String lhsExpr = stack.peek();
 
         if (lhsType.contains("Pair(")) {
             lhsType = "pair";
@@ -341,10 +341,23 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             binaryOpHelper(binaryOp, lhsReg, rhsReg);
         }
 
+        String returnType = checkBinaryOpArgument(ctx, lhs, binaryOp,
+                        lhsExpr, lhsType);
+        returnType = checkBinaryOpArgument(ctx, rhs, binaryOp,
+                        rhsExpr, rhsType);
+
+        // check if both argument types are the same
+        // mainly for '>' '>=' '<=' '<' cases
+        stack.push(rhsType);
+        checkType(ctx, lhsExpr, lhsType);
+
+        // Push the new expression into the stack
+        // remove unused expression
+        stack.pop();
         String newExpr = (lhsExpr + binaryOp + rhsExpr).replaceAll(
                         "\\s", "");
         stack.push(newExpr);
-        stack.push(lhsType);
+        stack.push(returnType);
     }
 
     private void binaryOpHelper(String binaryOp, String lhsReg,
@@ -353,6 +366,84 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         case "&&":
             text.add("AND " + lhsReg + ", " + lhsReg + ", " + rhsReg);
             break;
+        case "==":
+            text.add("CMP " + lhsReg + ", " + rhsReg);
+            text.add("MOVNE " + lhsReg + ", " + "#1");
+            text.add("MOVEQ " + lhsReg + ", " + "#0");
+            break;
+        case "!=":
+            text.add("CMP " + lhsReg + ", " + rhsReg);
+            text.add("MOVEQ " + lhsReg + ", " + "#1");
+            text.add("MOVNE " + lhsReg + ", " + "#0");
+            break;
+        case "<":
+            text.add("CMP " + lhsReg + ", " + rhsReg);
+            text.add("MOVLT " + lhsReg + ", " + "#1");
+            text.add("MOVGE " + lhsReg + ", " + "#0");
+            break;
+        case "<=":
+            text.add("CMP " + lhsReg + ", " + rhsReg);
+            text.add("MOVLE " + lhsReg + ", " + "#1");
+            text.add("MOVGT " + lhsReg + ", " + "#0");
+            break;
+        case ">":
+            text.add("CMP " + lhsReg + ", " + rhsReg);
+            text.add("MOVGT " + lhsReg + ", " + "#1");
+            text.add("MOVLE " + lhsReg + ", " + "#0");
+            break;
+        case ">=":
+            text.add("CMP " + lhsReg + ", " + rhsReg);
+            text.add("MOVGE " + lhsReg + ", " + "#1");
+            text.add("MOVLT " + lhsReg + ", " + "#0");
+            break;
+        }
+    }
+
+    private String checkBinaryOpArgument(ParserRuleContext ctx,
+                    ParserRuleContext ectx, String binaryOp,
+                    String binaryExpr, String binaryType) {
+        String returnType = "";
+
+        // check if rhsType match with operator's requirement
+        switch (binaryOp) {
+        case "*":
+        case "/":
+        case "%":
+        case " + ":
+        case " - ":
+            stack.push(INT);
+            checkType(ectx, binaryExpr, binaryType);
+            checkBinaryOpType(ctx, binaryType);
+            returnType = binaryType;
+            break;
+        case ">":
+        case ">=":
+        case "<":
+        case "<=":
+            if (!binaryType.equals(INT) && !binaryType.equals(CHAR)) {
+                stack.push(INT);
+                checkType(ectx, binaryExpr, binaryType);
+                checkBinaryOpType(ctx, binaryType);
+            }
+            returnType = BOOL;
+            break;
+        case "&&":
+        case "||":
+            stack.push(BOOL);
+            checkType(ectx, binaryExpr, binaryType);
+            checkBinaryOpType(ctx, binaryType);
+        case "==":
+        case "!=":
+            returnType = BOOL;
+            break;
+        }
+
+        return returnType;
+    }
+
+    private void checkBinaryOpType(ParserRuleContext ctx, String type) {
+        if (!(Arrays.asList(primitiveTypes).contains(type))) {
+            Utils.semanticError(ctx, "Incompatible type " + type);
         }
     }
 
@@ -397,8 +488,20 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     }
 
     /* Functions to manage registers */
+    // TODO: [Z - HELPER] Read this for how registers are managed
+    /*
+     * Register management plan
+     * 
+     * initReg() - locks r0 r1 r2 r3 to exclusive usage, begin with r4
+     * 
+     * assignReg() - gives the lowest number available reg
+     * 
+     * lockReg() - locks the lowest numbered available reg
+     * 
+     * releaseReg() - releases the lowest numbered unavailable reg
+     */
 
-    // TODO: [Registers] - Check the number of registers given
+    // Check the number of registers given
     private boolean[] reg = new boolean[16];
 
     private void initReg() {
@@ -422,7 +525,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         return null;
     }
 
-    // TODO: [Registers] Use lockReg / releaseReg with caution
+    // Use lockReg / releaseReg with caution
     private void lockReg() {
         for (int i = 4; i < reg.length; i++) {
             if (reg[i]) {
@@ -503,6 +606,10 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         return null;
     }
 
+    /*
+     * Deallocates memory for the given scope. Note that can only deallocate at
+     * most 1024 in one operation.
+     */
     private void deallocateScopeMemory(int scopeSize) {
         if (scopeSize > 0) {
             while (scopeSize > 0) {
@@ -516,6 +623,10 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
     }
 
+    /*
+     * Allocates memory for the given scope. Note that can only allocate at most
+     * 1024 in one operation.
+     */
     private void allocateScopeMemory(int scopeSize) {
         if (scopeSize > 0) {
             while (scopeSize > 0) {
@@ -592,6 +703,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         return null;
     }
 
+    // Creates a link to read functions
     private void readHelper(String varType) {
         switch (varType) {
         case "INT":
@@ -681,9 +793,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         stack.pop(); // Clear the name
 
         if (PASS == 2) {
-            text.add("MOV r0, " + assignReg() + ""); // TODO: [Print] - figure
-                                                     // out what this is
-            // for
+            // TODO: [Print] - figure out what this is for
+            text.add("MOV r0, " + assignReg() + "");
             printHelper(varType);
             text.add("BL p_print_ln");
             addPrintLN();
