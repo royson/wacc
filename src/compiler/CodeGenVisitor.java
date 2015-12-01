@@ -857,14 +857,13 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
     }
 
-    private void arrayAccess(int arrayLocation, String arrayReg,
-                    String elemReg, String arrayElemType) {
+    private void arrayAccess(String arrayReg, String elemReg,
+                    String arrayElemType) {
         text.add("LDR " + arrayReg + ", [" + arrayReg + "]");
         text.add("MOV r0, " + elemReg);
         text.add("MOV r1, " + arrayReg);
         text.add("BL p_check_array_bounds");
-        text.add("ADD " + arrayReg + ", " + arrayReg + ", #"
-                        + arrayLocation);
+        text.add("ADD " + arrayReg + ", " + arrayReg + ", #4");
         if (arrayElemType.equals("CHAR")
                         || arrayElemType.equals("BOOL")) {
             text.add("ADD " + arrayReg + ", " + arrayReg + ", "
@@ -1358,8 +1357,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Assign LHS array elem");
         }
 
-        // String varName = ctx.arrayElem().getText();
-        // String arrayName = ctx.arrayElem().IDENT().toString();
+        String varName = ctx.arrayElem().getText();
+        String arrayName = ctx.arrayElem().IDENT().toString();
         //
         // // Check if array element variable name is declared
         // int numberOfExprs = ctx.arrayElem().expr().size();
@@ -1369,13 +1368,13 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         // .getText(), ctx.arrayElem().expr(i));
         // }
         //
-        // stack.push(varName);
-        // stack.push(arrayName);
-        // String typeNeeded = checkDefinedVariable(ctx);
-        // typeNeeded = Utils.stripArrayTypeBracket(typeNeeded);
-        //
-        // stack.pop(); // arrayName is not needed in stack
-        // stack.push(typeNeeded);
+        stack.push(varName);
+        stack.push(arrayName);
+        String typeNeeded = checkDefinedVariable(ctx);
+        typeNeeded = Utils.stripArrayTypeBracket(typeNeeded);
+
+        stack.pop(); // arrayName is not needed in stack
+        stack.push(typeNeeded);
         return null;
     }
 
@@ -1640,8 +1639,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
 
         if (PASS == 2) {
-            arrayAccess(arrayLocation, arrayReg, elemReg,
-                            arrayElemType);
+            arrayAccess(arrayReg, elemReg, arrayElemType);
         }
 
         // Release register
