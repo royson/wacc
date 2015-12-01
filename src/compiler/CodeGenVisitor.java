@@ -107,6 +107,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         data.add("msg_" + messageCount + ":");
         data.add(".word " + stringLength(message));
         data.add(".ascii  " + message);
+        messageCount += 1;
     }
 
     private int stringLength(String message) {
@@ -128,21 +129,23 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             return;
         }
         printINT = true;
-        // Modify data
+
         String message = "\"%d\\0\"";
+        int cMsgCount = messageCount;
+
+        // Modify data
         addMessageToData(message);
 
         // Add to print list
         print.add("p_print_int:");
         print.add("PUSH {lr}");
         print.add("MOV r1, r0");
-        print.add("LDR r0, =msg_" + messageCount);
+        print.add("LDR r0, =msg_" + cMsgCount);
         print.add("ADD r0, r0, #4");
         print.add("BL printf");
         print.add("MOV r0, #0");
         print.add("BL fflush");
         print.add("POP {pc}");
-        messageCount += 1;
     }
 
     private void addPrintLN() {
@@ -150,20 +153,22 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             return;
         }
         printLN = true;
-        // Modify data
+
         String message = "\"\\0\"";
+        int cMsgCount = messageCount;
+
+        // Modify data
         addMessageToData(message);
 
         // Add to print list
         print.add("p_print_ln:");
         print.add("PUSH {lr}");
-        print.add("LDR r0, =msg_" + messageCount);
+        print.add("LDR r0, =msg_" + cMsgCount);
         print.add("ADD r0, r0, #4");
         print.add("BL puts");
         print.add("MOV r0, #0");
         print.add("BL fflush");
         print.add("POP {pc}");
-        messageCount += 1;
     }
 
     private void addPrintSTRING() {
@@ -171,8 +176,11 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             return;
         }
         printSTRING = true;
-        // Modify data
+
         String message = "\"%.*s\\0\"";
+        int cMsgCount = messageCount;
+
+        // Modify data
         addMessageToData(message);
 
         // Add to print list
@@ -180,13 +188,12 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         print.add("PUSH {lr}");
         print.add("LDR r1, [r0]");
         print.add("ADD r2, r0, #4");
-        print.add("LDR r0, =msg_" + messageCount);
+        print.add("LDR r0, =msg_" + cMsgCount);
         print.add("ADD r0, r0, #4");
         print.add("BL printf");
         print.add("MOV r0, #0");
         print.add("BL fflush");
         print.add("POP {pc}");
-        messageCount += 1;
     }
 
     private void addPrintBOOL() {
@@ -194,12 +201,13 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             return;
         }
         printBOOL = true;
+
+        String trueStr = "\"true\\0\"";
+        String falseStr = "\"false\\0\"";
         int trueCnt = messageCount;
         int falseCnt = messageCount + 1;
 
         // Modify data
-        String trueStr = "\"true\\0\"";
-        String falseStr = "\"false\\0\"";
         addMessageToData(trueStr);
         addMessageToData(falseStr);
 
@@ -214,7 +222,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         print.add("MOV r0, #0");
         print.add("BL fflush");
         print.add("POP {pc}");
-        messageCount += 2;
     }
 
     // Read statements
@@ -227,19 +234,20 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
         readINT = true;
 
-        // Modify data
         String message = "\"%d\\0\"";
+        int cMsgCount = messageCount;
+        
+        // Modify data
         addMessageToData(message);
 
         // Add to print list
         print.add("p_read_int:");
         print.add("PUSH {lr}");
         print.add("MOV r1, r0");
-        print.add("LDR r0, =msg_" + messageCount);
+        print.add("LDR r0, =msg_" + cMsgCount);
         print.add("ADD r0, r0, #4");
         print.add("BL scanf");
         print.add("POP {pc}");
-        messageCount += 1;
     }
 
     private void addReadCHAR() {
@@ -248,42 +256,63 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
         readCHAR = true;
 
-        // Modify data
         String message = "\" %c\\0\"";
+        int cMsgCount = messageCount;
+        
+        // Modify data
         addMessageToData(message);
 
         // Add to print list
         print.add("p_read_char:");
         print.add("PUSH {lr}");
         print.add("MOV r1, r0");
-        print.add("LDR r0, =msg_" + messageCount);
+        print.add("LDR r0, =msg_" + cMsgCount);
         print.add("ADD r0, r0, #4");
         print.add("BL scanf");
         print.add("POP {pc}");
-        messageCount += 1;
     }
 
-    boolean checkDivideByZero = false;
+    boolean divideByZeroError = false;
+    boolean overflowError = false;
     boolean throwRuntimeError = false;
 
-    private void addCheckDivideByZero() {
-        if (checkDivideByZero) {
+    private void addDivideByZeroError() {
+        if (divideByZeroError) {
             return;
         }
-        checkDivideByZero = true;
+        divideByZeroError = true;
 
-        // Modify data
         String message = "\"DivideByZeroError: divide or modulo by zero\\n\\0\"";
+        int cMsgCount = messageCount;
+        
+        // Modify data
         addMessageToData(message);
 
         // Add to print list
         print.add("p_check_divide_by_zero:");
         print.add("PUSH {lr}");
         print.add("CMP r1, #0");
-        print.add("LDREQ r0, =msg_" + messageCount);
+        print.add("LDREQ r0, =msg_" + cMsgCount);
         print.add("BLEQ p_throw_runtime_error");
         print.add("POP {pc}");
-        messageCount += 1;
+        addThrowRuntimeError();
+    }
+
+    private void addOverflowError() {
+        if (overflowError) {
+            return;
+        }
+        overflowError = true;
+
+        String message = "\"OverflowError: the result is too small/large to store in a 4-byte signed-integer.\\n\"";
+        int cMsgCount = messageCount;
+        
+        // Modify data
+        addMessageToData(message);
+
+        print.add("p_throw_overflow_error:");
+        print.add("LDR r0, =msg_" + cMsgCount);
+        print.add("BL p_throw_runtime_error");
         addThrowRuntimeError();
     }
 
@@ -292,7 +321,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             return;
         }
         throwRuntimeError = true;
-        
+
         print.add("p_throw_runtime_error:");
         print.add("BL p_print_string");
         print.add("MOV r0, #-1");
@@ -383,6 +412,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
 
         if (PASS == 2) {
+            // TODO: [DEBUG] - Remove after finishing binaryOp
             System.out.println(binaryOp);
             binaryOpHelper(binaryOp, lhsReg, rhsReg);
         }
@@ -448,7 +478,12 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             text.add("BL p_check_divide_by_zero");
             text.add("BL __aeabi_idiv");
             text.add("MOV " + lhsReg + ", r0");
-            addCheckDivideByZero();
+            addDivideByZeroError();
+            break;
+        case " + ":
+            text.add("ADDS " + lhsReg + ", " + lhsReg + ", " + rhsReg);
+            text.add("BLVS p_throw_overflow_error");
+            addOverflowError();
             break;
         }
     }
