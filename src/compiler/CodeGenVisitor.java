@@ -488,7 +488,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             text.add("MOV r1, " + rhsReg);
             text.add("BL p_check_divide_by_zero");
             text.add("BL __aeabi_idivmod");
-            text.add("MOV " + lhsReg + ", r0");
+            text.add("MOV " + lhsReg + ", r1");
             addDivideByZeroError();
             break;
         case " + ":
