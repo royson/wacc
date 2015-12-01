@@ -33,7 +33,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
     private String[] primitiveTypes = { INT, BOOL, CHAR, STRING };
 
-    private boolean DEBUG = false;
+    private boolean DEBUG = true;
     private int PASS = 1;
 
     // Storage of program - PASS 2
@@ -798,7 +798,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     /* Functions for dealing with memory */
     private void storeToMemory(String varName, String varType) {
         int offset = currentST.lookUpAllLabel(varName);
-        // assignReg();
         if (varType.equals("BOOL") || varType.equals("CHAR")) {
             if (offset != 0) {
                 text.add("STRB " + currentReg + ", [sp, #" + offset
@@ -817,22 +816,23 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     }
 
     private void storeArrayLitToMemory(String varName,
-                    String varType, int offset) {
+                    String varType, String arrayReg, int offset) {
         // int offset = currentST.lookUpAllLabel(varName);
         // assignReg();
         if (varType.equals("BOOL") || varType.equals("CHAR")) {
             if (offset != 0) {
-                text.add("STRB " + currentReg + ", [sp, #" + offset
-                                + "]");
+                text.add("STRB " + currentReg + ", [" + arrayReg
+                                + ", #" + offset + "]");
             } else {
-                text.add("STRB " + currentReg + ", [sp]");
+                text.add("STRB " + currentReg + ", [" + arrayReg
+                                + "]");
             }
         } else {
             if (offset != 0) {
-                text.add("STR " + currentReg + ", [sp, #" + offset
-                                + "]");
+                text.add("STR " + currentReg + ", [" + arrayReg
+                                + ", #" + offset + "]");
             } else {
-                text.add("STR " + currentReg + ", [sp]");
+                text.add("STR " + currentReg + ", [" + arrayReg + "]");
             }
         }
     }
@@ -1255,7 +1255,9 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         String modArrayType = Utils.stripArrayTypeBracket(arrayType);
         int typeSpace = spaceForType(modArrayType);
 
-        int memoryReq = exprs.size() * typeSpace + 4;
+        int numElems = exprs.size();
+        int memoryReq = numElems * typeSpace + 4;
+        String arrayReg = currentReg;
 
         // Allocate memory
         if (PASS == 2) {
@@ -1263,11 +1265,13 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             text.add("BL malloc");
 
             // Assign register for the location of the array
-            text.add("MOV " + currentReg + ", r0");
+            text.add("MOV " + arrayReg + ", r0");
         }
 
         // Lock the register
         lockReg();
+
+        String elemReg = currentReg;
 
         int memoryPos = 0;
         for (ExprContext ectx : exprs) {
@@ -1277,7 +1281,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             memoryPos += typeSpace;
 
             if (PASS == 2) {
-                storeArrayLitToMemory(exprName, exprType, memoryPos);
+                storeArrayLitToMemory(exprName, exprType, arrayReg,
+                                memoryPos);
             }
         }
 
@@ -1286,10 +1291,12 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
         if (PASS == 2) {
             // Store the array
+            text.add("LDR " + elemReg + ", =" + numElems);
+            text.add("STR " + elemReg + ", [" + arrayReg + "]");
             storeToMemory(arrayName, arrayType);
         }
 
-        // Not inserted to prevent stack pollution
+        // TODO: [Array] Not added to prevent stack pollution
         // stack.push(arrayName);
         // stack.push(arrayType);
         return null;
@@ -1350,6 +1357,25 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Assign LHS array elem");
         }
+
+        // String varName = ctx.arrayElem().getText();
+        // String arrayName = ctx.arrayElem().IDENT().toString();
+        //
+        // // Check if array element variable name is declared
+        // int numberOfExprs = ctx.arrayElem().expr().size();
+        //
+        // for (int i = 0; i < numberOfExprs; i++) {
+        // checkArrayElementVariableName(ctx.arrayElem().expr(i)
+        // .getText(), ctx.arrayElem().expr(i));
+        // }
+        //
+        // stack.push(varName);
+        // stack.push(arrayName);
+        // String typeNeeded = checkDefinedVariable(ctx);
+        // typeNeeded = Utils.stripArrayTypeBracket(typeNeeded);
+        //
+        // stack.pop(); // arrayName is not needed in stack
+        // stack.push(typeNeeded);
         return null;
     }
 
