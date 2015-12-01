@@ -122,8 +122,10 @@ public class Main {
 
     private static void printString(PrintWriter writer, String s) {
         char firstChar = s.charAt(0);
-        if ((firstChar >= 'A' && firstChar <= 'Z')
-                        || firstChar == '.') {
+        char secChar = s.charAt(1);
+        if ((firstChar >= 'A' && firstChar <= 'Z' && firstChar != 'L')
+                || (firstChar == 'L' && secChar >= 'A' && secChar <= 'Z')
+                || firstChar == '.') {
             writer.write("    ");
         }
         writer.write(s + "\n");

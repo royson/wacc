@@ -48,6 +48,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     // Stuff needed by Codegenerator
     private int messageCount = 0;
     private int branchCount = 0;
+    private int nonFunctionBlockCount = 0;
 
     // TODO: [Scope] spPosition has to be modified on entering / exiting scope
     private int spPosition = 0;
@@ -94,6 +95,15 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         saveStack = (Stack<String>) stack.clone();
         text.add("PUSH {lr}");
     }
+    
+	@SuppressWarnings("unchecked")
+	private void newScope() {
+		SymbolTableWrapper<String> st = new SymbolTableWrapper<String>(
+				currentST);
+		currentST = st;
+		saveStack = (Stack<String>) stack.clone();
+	}
+
 
     @SuppressWarnings("unchecked")
     private void freeScope() {
@@ -858,7 +868,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
          * have clash on if statements
          */
         if (PASS == 2) {
-
             // Deallocate memory
             deallocateScopeMemory(scopeSize);
 
@@ -1099,15 +1108,34 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-If statement");
         }
-        // TODO: [Z] If statements removed for now
-        // visit(ctx.expr());
-        // // giving a new scope for each stat
-        // for (int i = 0; i < 2; i++) {
-        // newScope();
-        // visit(ctx.stat(i));
-        // freeScope();
-        // }
-        return null;
+         //TODO: [Z] If statements removed for now
+		if (PASS == 2) {
+			visit(ctx.expr());
+			
+			// Check condition; branch if false
+			text.add("CMP " + currentReg + " #0");
+			String elseBlock = "L" + nonFunctionBlockCount;
+			text.add("BEQ " + elseBlock);
+			
+			// then block
+			newScope();
+			visit(ctx.stat(0));
+			freeScope();
+			
+			// Branch to code after fi
+			text.add("B L" + (nonFunctionBlockCount + 1));
+			// giving a new scope for each stat
+			
+			// else block
+			text.add("L" + nonFunctionBlockCount++ + ":");
+			newScope();
+			visit(ctx.stat(1));
+			freeScope();
+			
+			// start of code after fi
+			text.add("L" + nonFunctionBlockCount++ + ":");
+		}
+		return null;
     }
 
     public Void visitWhilestatement(
