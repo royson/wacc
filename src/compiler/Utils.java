@@ -18,6 +18,13 @@ public class Utils {
             return (type.endsWith("[]"));
     }
     
+    public static boolean isArrayElem(String varName) {
+        if(varName.contains("[") && varName.contains("]")) {
+            return true;
+        }
+        return false;
+    }
+    
     public static boolean isANullPair(String type) {
         return (type.equals("pair"));
     }

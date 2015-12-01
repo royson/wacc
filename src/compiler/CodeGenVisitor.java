@@ -797,6 +797,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
     /* Functions for dealing with memory */
     private void storeToMemory(String varName, String varType) {
+        System.out.println(varName + " " + varType);
         int offset = currentST.lookUpAllLabel(varName);
         if (varType.equals("BOOL") || varType.equals("CHAR")) {
             if (offset != 0) {
@@ -868,11 +869,9 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
                         || arrayElemType.equals("BOOL")) {
             text.add("ADD " + arrayReg + ", " + arrayReg + ", "
                             + elemReg);
-            text.add("LDRSB " + arrayReg + ", [" + arrayReg + "]");
         } else {
             text.add("ADD " + arrayReg + ", " + arrayReg + ", "
                             + elemReg + ", LSL #2");
-            text.add("LDR " + arrayReg + ", [" + arrayReg + "]");
         }
         addCheckArrayBounds();
     }
@@ -1221,15 +1220,49 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
         String varType = stack.pop();
         String varName = stack.pop();
+        String elemLoc = null;
+
+        if (Utils.isArrayElem(varName)) {
+            elemLoc = stack.pop();
+        }
 
         visit(ctx.expr());
         String exprType = stack.pop();
         String exprName = stack.pop();
 
         if (PASS == 2) {
-            storeToMemory(varName, varType);
+            if (Utils.isArrayElem(varName)) {
+                if (DEBUG) {
+                    System.out.println("-Storing to array element "
+                                    + elemLoc);
+                }
+                storeToArrayElem(varType, elemLoc);
+            } else {
+                storeToMemory(varName, varType);
+            }
         }
         return null;
+    }
+
+    private void storeToArrayElem(String arrayElemType, String elemLoc) {
+        // TODO Auto-generated method stub
+        String reg1 = currentReg;
+        lockReg();
+        String reg2 = currentReg;
+        lockReg();
+        String reg3 = currentReg;
+
+        text.add("ADD " + reg2 + ", sp, #0");
+        text.add("LDR " + reg3 + ", =" + elemLoc);
+        arrayAccess(reg2, reg3, arrayElemType);
+        text.add("STR " + reg1 + ", [" + reg2 + "]");
+
+        // Clear the registers before releasing them
+        text.add("LDR " + reg2 + ", =0");
+        text.add("LDR " + reg3 + ", =0");
+
+        releaseReg();
+        releaseReg();
     }
 
     public Void visitAssignrhsarraylit(
@@ -1368,6 +1401,15 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         // .getText(), ctx.arrayElem().expr(i));
         // }
         //
+        int numberOfExprs = ctx.arrayElem().expr().size();
+        String elemLoc = null;
+        for (int i = 0; i < numberOfExprs; i++) {
+            stack.push(varName);
+            visit(ctx.arrayElem().expr(i));
+            stack.pop();
+            elemLoc = stack.pop();
+        }
+        stack.push(elemLoc);
         stack.push(varName);
         stack.push(arrayName);
         String typeNeeded = checkDefinedVariable(ctx);
@@ -1498,13 +1540,25 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Int literal");
         }
+        boolean fromArray = false;
+        if (!stack.empty()) {
+            // Check if we are coming from an array
+            String varName = stack.peek();
+            if (Utils.isArrayElem(varName)) {
+                fromArray = true;
+                stack.pop(); // Remove array name
+            }
+        }
         int value = Integer.parseInt(ctx.getText());
 
         stack.push(Integer.toString(value));
         stack.push("INT");
 
         if (PASS == 2) {
-            text.add("LDR " + currentReg + ", =" + value);
+            // Only add instruction if we are not coming from array
+            if (!fromArray) {
+                text.add("LDR " + currentReg + ", =" + value);
+            }
         }
         return null;
     }
@@ -1640,6 +1694,12 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
         if (PASS == 2) {
             arrayAccess(arrayReg, elemReg, arrayElemType);
+            if (arrayElemType.equals("CHAR")
+                            || arrayElemType.equals("BOOL")) {
+                text.add("LDRSB " + arrayReg + ", [" + arrayReg + "]");
+            } else {
+                text.add("LDR " + arrayReg + ", [" + arrayReg + "]");
+            }
         }
 
         // Release register
