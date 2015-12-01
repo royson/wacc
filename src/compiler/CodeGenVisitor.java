@@ -712,7 +712,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     private boolean[] reg = new boolean[11];
     private String lastReg = "r" + (reg.length - 1);
     private String stackReg = "r11";
-    private String currentReg = null;
+    private String currentReg = "r4";
 
     private void initReg() {
         Arrays.fill(reg, true);
