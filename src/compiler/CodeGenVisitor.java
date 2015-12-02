@@ -95,15 +95,14 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         saveStack = (Stack<String>) stack.clone();
         text.add("PUSH {lr}");
     }
-    
-	@SuppressWarnings("unchecked")
-	private void newScope() {
-		SymbolTableWrapper<String> st = new SymbolTableWrapper<String>(
-				currentST);
-		currentST = st;
-		saveStack = (Stack<String>) stack.clone();
-	}
 
+    @SuppressWarnings("unchecked")
+    private void newScope() {
+        SymbolTableWrapper<String> st = new SymbolTableWrapper<String>(
+                        currentST);
+        currentST = st;
+        saveStack = (Stack<String>) stack.clone();
+    }
 
     @SuppressWarnings("unchecked")
     private void freeScope() {
@@ -451,8 +450,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (PASS == 2) {
             // assignReg();
             lhsReg = currentReg;
-            System.out.println(lhs.getText() + " " + rhs.getText()
-                            + " " + lhsReg);
+            // System.out.println(lhs.getText() + " " + rhs.getText()
+            // + " " + lhsReg);
         }
         visit(lhs);
         String lhsType = stack.pop();
@@ -467,7 +466,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
                 text.add("PUSH {" + lhsReg + "}");
                 rhsReg = stackReg;
             }
-            System.out.println(lhsReg + " " + rhsReg);
+            // System.out.println(lhsReg + " " + rhsReg);
         }
 
         // Visit RHS
@@ -908,14 +907,16 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         addCheckArrayBounds();
     }
 
-    private void storeToArrayElem(String arrayElemType, String elemLoc) {
+    private void storeToArrayElem(String arrayName, String arrayElemType, String elemLoc) {
         String reg1 = currentReg;
         lockReg();
         String reg2 = currentReg;
         lockReg();
         String reg3 = currentReg;
+        
+        int arrayLoc = currentST.lookUpAllLabel(arrayName);
 
-        text.add("ADD " + reg2 + ", sp, #0");
+        text.add("ADD " + reg2 + ", sp, #" + arrayLoc);
         text.add("LDR " + reg3 + ", =" + elemLoc);
         loadFromArrayElem(reg2, reg3, arrayElemType);
         if (arrayElemType.equals("CHAR")
@@ -1236,7 +1237,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         String postFiBlock = "";
 
         visit(ctx.expr());
-        
+
         // Clear the stack
         stack.pop();
         stack.pop();
@@ -1298,7 +1299,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
 
         visit(ctx.expr());
-        
+
         // Clearing stack
         stack.pop();
         stack.pop();
@@ -1342,8 +1343,10 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         String varType = stack.pop();
         String varName = stack.pop();
         String elemLoc = null;
+        String arrayName = null;
 
         if (Utils.isArrayElem(varName)) {
+            arrayName = stack.pop();
             elemLoc = stack.pop();
         }
 
@@ -1357,7 +1360,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
                     System.out.println("-Storing to array element "
                                     + elemLoc);
                 }
-                storeToArrayElem(varType, elemLoc);
+                storeToArrayElem(arrayName, varType, elemLoc);
             } else {
                 storeToMemory(varName, varType);
             }
@@ -1510,6 +1513,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             elemLoc = stack.pop();
         }
         stack.push(elemLoc);
+        stack.push(arrayName);
         stack.push(varName);
         stack.push(arrayName);
         String typeNeeded = checkDefinedVariable(ctx);
