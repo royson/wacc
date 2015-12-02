@@ -891,6 +891,10 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
     private void loadFromArrayElem(String arrayReg, String elemReg,
                     String arrayElemType) {
+        if (DEBUG) {
+            System.out.println("-Loading from array elem " + arrayReg
+                            + " " + elemReg + " " + arrayElemType);
+        }
         text.add("LDR " + arrayReg + ", [" + arrayReg + "]");
         text.add("MOV r0, " + elemReg);
         text.add("MOV r1, " + arrayReg);
@@ -909,6 +913,11 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
     private void storeToArrayElem(String arrayName,
                     String arrayElemType, String elemLoc) {
+        if (DEBUG) {
+            System.out.println("-Storing to array element "
+                            + arrayName + " " + arrayElemType + " "
+                            + elemLoc);
+        }
         String reg1 = currentReg;
         lockReg();
         String reg2 = currentReg;
@@ -916,9 +925,23 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         String reg3 = currentReg;
 
         int arrayLoc = currentST.lookUpAllLabel(arrayName);
+        boolean elemLocIsNumber = true;
+        int elemLocNum = 0;
 
         text.add("ADD " + reg2 + ", sp, #" + arrayLoc);
-        text.add("LDR " + reg3 + ", =" + elemLoc);
+
+        // The case where the element location is a variable
+        try {
+            elemLocNum = Integer.parseInt(elemLoc);
+        } catch (Exception e) {
+            elemLocIsNumber = false;
+        }
+
+        if (elemLocIsNumber) {
+            text.add("LDR " + reg3 + ", =" + elemLocNum);
+        } else {
+            text.add("LDR " + reg3 + ", [sp]");
+        }
         loadFromArrayElem(reg2, reg3, arrayElemType);
         if (arrayElemType.equals("CHAR")
                         || arrayElemType.equals("BOOL")) {
@@ -1284,13 +1307,11 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (PASS == 2) {
             // Branch to checking condition and code following while loop
             checkCondAndAfterWhile = "L" + nonFunctionBlockCount++;
-            System.out.println(nonFunctionBlockCount);
             text.add("B " + checkCondAndAfterWhile);
 
             // Loop code
             loopBodyLabel = "L" + nonFunctionBlockCount++;
             text.add(loopBodyLabel + ":");
-            System.out.println(nonFunctionBlockCount);
         }
 
         newScope();
@@ -1354,16 +1375,14 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             elemLoc = stack.pop();
         }
 
+        // TODO: [Z - Array] This code result in duplicate loads to currentReg when doing
+        // operations like a[i] = i
         visit(ctx.expr());
         String exprType = stack.pop();
         String exprName = stack.pop();
 
         if (PASS == 2) {
             if (Utils.isArrayElem(varName)) {
-                if (DEBUG) {
-                    System.out.println("-Storing to array element "
-                                    + elemLoc);
-                }
                 storeToArrayElem(arrayName, varType, elemLoc);
             } else {
                 storeToMemory(varName, varType);
