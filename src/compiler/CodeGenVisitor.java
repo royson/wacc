@@ -907,13 +907,14 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         addCheckArrayBounds();
     }
 
-    private void storeToArrayElem(String arrayName, String arrayElemType, String elemLoc) {
+    private void storeToArrayElem(String arrayName,
+                    String arrayElemType, String elemLoc) {
         String reg1 = currentReg;
         lockReg();
         String reg2 = currentReg;
         lockReg();
         String reg3 = currentReg;
-        
+
         int arrayLoc = currentST.lookUpAllLabel(arrayName);
 
         text.add("ADD " + reg2 + ", sp, #" + arrayLoc);
@@ -1231,7 +1232,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-If statement");
         }
-        // TODO: [Z] If statements removed for now
 
         String elseBlock = "";
         String postFiBlock = "";
@@ -1792,8 +1792,9 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
         for (int i = 0; i < numberOfExprs; i++) {
             visit(ctx.expr(i));
-            stack.pop(); // Remove element type
-            elemLocation = Integer.parseInt(stack.pop());
+            stack.pop(); // Remove expr type
+            stack.pop(); // Remove expr name
+
             if (PASS == 2) {
                 loadFromArrayElem(arrayReg, elemReg, arrayElemType);
             }
