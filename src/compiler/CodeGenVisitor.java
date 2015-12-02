@@ -48,6 +48,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     // Stuff needed by Codegenerator
     private int messageCount = 0;
     private int branchCount = 0;
+    private int nonFunctionBlockCount = 0;
 
     // TODO: [Scope] spPosition has to be modified on entering / exiting scope
     private int spPosition = 0;
@@ -94,6 +95,15 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         saveStack = (Stack<String>) stack.clone();
         text.add("PUSH {lr}");
     }
+    
+	@SuppressWarnings("unchecked")
+	private void newScope() {
+		SymbolTableWrapper<String> st = new SymbolTableWrapper<String>(
+				currentST);
+		currentST = st;
+		saveStack = (Stack<String>) stack.clone();
+	}
+
 
     @SuppressWarnings("unchecked")
     private void freeScope() {
@@ -1016,7 +1026,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
          * have clash on if statements
          */
         if (PASS == 2) {
-
             // Deallocate memory
             deallocateScopeMemory(scopeSize);
 
@@ -1222,13 +1231,40 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-If statement");
         }
         // TODO: [Z] If statements removed for now
-        // visit(ctx.expr());
-        // // giving a new scope for each stat
-        // for (int i = 0; i < 2; i++) {
-        // newScope();
-        // visit(ctx.stat(i));
-        // freeScope();
-        // }
+
+        String elseBlock = "";
+        String postFiBlock = "";
+
+        visit(ctx.expr());
+
+        if (PASS == 2) {
+            // Check condition; branch if false
+            text.add("CMP " + currentReg + " #0");
+            elseBlock = "L" + nonFunctionBlockCount++;
+            text.add("BEQ " + elseBlock);
+        }
+
+        for (int i = 0; i < 2; i++) {
+            // 0: then block; 1: else block
+            newScope();
+            visit(ctx.stat(i));
+            freeScope();
+
+            if (PASS == 2 && i == 0) {
+                // Branch to code after fi
+                postFiBlock = "L" + nonFunctionBlockCount++;
+                text.add("B " + postFiBlock);
+                // giving a new scope for each stat
+
+                // else block
+                text.add(elseBlock + ":");
+            }
+        }
+
+        if (PASS == 2) {
+            // start of code after fi
+            text.add(postFiBlock + ":");
+        }
         return null;
     }
 
@@ -1237,11 +1273,34 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-While statement");
         }
+
+        String checkCondAndAfterWhile = "";
         // TODO: [Z] While statement removed for now
-        // visit(ctx.expr());
-        // newScope();
-        // visit(ctx.stat());
-        // freeScope();
+        if (PASS == 2) {
+            // Branch to checking condition and code following while loop
+            checkCondAndAfterWhile = "L" + nonFunctionBlockCount++;
+            text.add("B " + checkCondAndAfterWhile);
+
+            // Loop code
+            text.add("L" + nonFunctionBlockCount++ + ":");
+        }
+
+        newScope();
+        visit(ctx.stat());
+        freeScope();
+
+        if (PASS == 2) {
+            // checking condition and code following loop
+            text.add(checkCondAndAfterWhile + ":");
+        }
+
+        visit(ctx.expr());
+
+        if (PASS == 2) {
+            text.add("CMP " + currentReg + ", #1");
+            text.add("BEQ L" + (nonFunctionBlockCount - 1));
+        }
+
         return null;
     }
 
