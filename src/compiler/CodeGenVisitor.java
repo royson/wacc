@@ -1236,10 +1236,14 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         String postFiBlock = "";
 
         visit(ctx.expr());
+        
+        // Clear the stack
+        stack.pop();
+        stack.pop();
 
         if (PASS == 2) {
             // Check condition; branch if false
-            text.add("CMP " + currentReg + " #0");
+            text.add("CMP " + currentReg + ", #0");
             elseBlock = "L" + nonFunctionBlockCount++;
             text.add("BEQ " + elseBlock);
         }
@@ -1275,7 +1279,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
 
         String checkCondAndAfterWhile = "";
-        // TODO: [Z] While statement removed for now
         if (PASS == 2) {
             // Branch to checking condition and code following while loop
             checkCondAndAfterWhile = "L" + nonFunctionBlockCount++;
@@ -1295,6 +1298,10 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
 
         visit(ctx.expr());
+        
+        // Clearing stack
+        stack.pop();
+        stack.pop();
 
         if (PASS == 2) {
             text.add("CMP " + currentReg + ", #1");
