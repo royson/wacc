@@ -121,6 +121,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     private boolean printLN = false;
     private boolean printSTRING = false;
     private boolean printBOOL = false;
+    private boolean printReference = false;
 
     private void addPrintINT() {
         if (printINT) {
@@ -215,6 +216,30 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         print.add("CMP r0, #0");
         print.add("LDRNE r0, =msg_" + trueCnt);
         print.add("LDREQ r0, =msg_" + falseCnt);
+        print.add("ADD r0, r0, #4");
+        print.add("BL printf");
+        print.add("MOV r0, #0");
+        print.add("BL fflush");
+        print.add("POP {pc}");
+    }
+
+    private void addPrintReference() {
+        if (printReference) {
+            return;
+        }
+        printReference = true;
+
+        String message = "\"%p\\0\"";
+        int cMsgCount = messageCount;
+
+        // Modify data
+        addMessageToData(message);
+
+        // Add to print list
+        print.add("p_print_reference:");
+        print.add("PUSH {lr}");
+        print.add("MOV r1, r0");
+        print.add("LDR r0, =msg_" + cMsgCount);
         print.add("ADD r0, r0, #4");
         print.add("BL printf");
         print.add("MOV r0, #0");
@@ -1166,6 +1191,14 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
     // Creates link to print functions in main code
     private void printHelper(String type) {
+        // Printing for array
+        if (Utils.isAnArray(type)) {
+            addPrintReference();
+            text.add("BL p_print_reference");
+            return;
+        }
+
+        // Printing for primitive
         switch (type) {
         case "INT":
             addPrintINT();
