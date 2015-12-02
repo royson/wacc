@@ -1280,13 +1280,17 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
 
         String checkCondAndAfterWhile = "";
+        String loopBodyLabel = "";
         if (PASS == 2) {
             // Branch to checking condition and code following while loop
             checkCondAndAfterWhile = "L" + nonFunctionBlockCount++;
+            System.out.println(nonFunctionBlockCount);
             text.add("B " + checkCondAndAfterWhile);
 
             // Loop code
-            text.add("L" + nonFunctionBlockCount++ + ":");
+            loopBodyLabel = "L" + nonFunctionBlockCount++;
+            text.add(loopBodyLabel + ":");
+            System.out.println(nonFunctionBlockCount);
         }
 
         newScope();
@@ -1306,7 +1310,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
         if (PASS == 2) {
             text.add("CMP " + currentReg + ", #1");
-            text.add("BEQ L" + (nonFunctionBlockCount - 1));
+            text.add("BEQ " + loopBodyLabel);
         }
 
         return null;
