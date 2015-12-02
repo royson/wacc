@@ -1724,10 +1724,11 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             visit(ctx.expr(i));
             stack.pop(); // Remove element type
             elemLocation = Integer.parseInt(stack.pop());
+            if (PASS == 2) {
+                loadFromArrayElem(arrayReg, elemReg, arrayElemType);
+            }
         }
-
         if (PASS == 2) {
-            loadFromArrayElem(arrayReg, elemReg, arrayElemType);
             if (arrayElemType.equals("CHAR")
                             || arrayElemType.equals("BOOL")) {
                 text.add("LDRSB " + arrayReg + ", [" + arrayReg + "]");
