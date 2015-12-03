@@ -1379,6 +1379,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-While statement");
         }
+        
+        // TODO: [While] - Fixed nested while loops
 
         String checkCondAndAfterWhile = "";
         String loopBodyLabel = "";
