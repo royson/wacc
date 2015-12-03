@@ -1399,17 +1399,17 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         String exprName = stack.pop();
 
         if (PASS == 2) {
-            
+
             // To handle arrays
             if (Utils.isArrayElem(varName)) {
                 storeToArrayElem(arrayName, varType, elemLoc);
-            } else if(exprName.equals(varName)){
+            } else if (exprName.equals(varName)) {
                 // TODO: [Z - HOTFIX] for param reassignment
-                
+
                 int offset = currentST.lookUpAllLabel(varName);
-                
+
                 // Overwrite the param's offset
-                currentST.addLabel(varName+".p", offset);
+                currentST.addLabel(varName + ".p", offset);
                 storeToMemory(varName, varType);
             } else {
                 storeToMemory(varName, varType);
@@ -1522,9 +1522,9 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             if (PASS == 2) {
                 if (exprType.equals("CHAR")
                                 || exprType.equals("BOOL")) {
-                    text.add("STRB " + currentReg + ", [sp #-1]!");
+                    text.add("STRB " + currentReg + ", [sp, #-1]!");
                 } else {
-                    text.add("STR " + currentReg + ", [sp #-4]!");
+                    text.add("STR " + currentReg + ", [sp, #-4]!");
                 }
             }
             argsMem += spaceForType(exprType);
@@ -1549,15 +1549,18 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
 
         stack.push(funcName);
+        String argsMem = "0";
         if (ctx.arg_list() != null) {
             visit(ctx.arg_list());
+            argsMem = stack.pop(); // Retrieve arg memory
         }
-        String argsMem = stack.pop(); // Retrieve arg memory
         stack.pop(); // Remove function name
 
         if (PASS == 2) {
             text.add("BL f_" + funcName);
-            text.add("ADD sp, sp, #" + argsMem);
+            if (!argsMem.equals("0")) {
+                text.add("ADD sp, sp, #" + argsMem);
+            }
             text.add("MOV " + currentReg + ", r0");
             if (varType.equals("BOOL") || varType.equals("CHAR")) {
                 text.add("STRB " + currentReg + ", [sp]");
