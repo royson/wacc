@@ -9,6 +9,15 @@ public class SymbolTableWrapper<V> {
 
     SymbolTableWrapper<V> encSymTable;
     private int scopeSize = 0;
+    private int spPos = 0;
+
+    public int getSpPos() {
+        return spPos;
+    }
+
+    public void setSpPos(int spPos) {
+        this.spPos = spPos;
+    }
 
     public int getScopeSize() {
         return scopeSize;

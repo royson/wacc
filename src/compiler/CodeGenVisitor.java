@@ -95,6 +95,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-newScope");
         }
+        currentST.setSpPos(spPosition);
+        spPosition = 0;
         SymbolTableWrapper<String> st = new SymbolTableWrapper<String>(
                         currentST);
         currentST = st;
@@ -107,6 +109,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-freeScope");
         }
         currentST = currentST.getEncSymTable();
+        spPosition = currentST.getSpPos();
         stack = (Stack<String>) saveStack.clone();
     }
 
@@ -1031,6 +1034,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             }
         }
         currentST.setScopeSize(spPosition);
+        System.err.println(spPosition);
         spPosition = 0;
     }
 
@@ -1052,7 +1056,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         // Resets
         nonFunctionBlockCount = 0;
 
-        scopeStack.push("main");
 
         // Traverse all functions first
         List<FuncContext> funcList = ctx.func();
@@ -1090,7 +1093,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             allocateScopeMemory(scopeSize);
         }
 
-        currentScope = scopeStack.pop();
         visit(ctx.stat());
 
         if (PASS == 1) {
@@ -1382,23 +1384,35 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         
         // TODO: [While] - Fixed nested while loops
 
-        String checkCondAndAfterWhile = "";
-        String loopBodyLabel = "";
+        String checkCondAndAfterWhile = "L" + nonFunctionBlockCount++;
+        String loopBodyLabel = "L" + nonFunctionBlockCount++;
+
+        newScope();
+        
+        int scopeSize = 0;
+        
         if (PASS == 2) {
             // Branch to checking condition and code following while loop
-            checkCondAndAfterWhile = "L" + nonFunctionBlockCount++;
             text.add("B " + checkCondAndAfterWhile);
 
             // Loop code
-            loopBodyLabel = "L" + nonFunctionBlockCount++;
             text.add(loopBodyLabel + ":");
+            currentST = storeScopes.get(loopBodyLabel);
+            scopeSize = currentST.getScopeSize();
+            allocateScopeMemory(scopeSize);
         }
-
-        newScope();
+        
         visit(ctx.stat());
+        
+        if (PASS == 1) {
+            adjustLabels();
+            storeScopes.put(loopBodyLabel, currentST);
+        }
+        
         freeScope();
 
         if (PASS == 2) {
+            deallocateScopeMemory(scopeSize);
             // checking condition and code following loop
             text.add(checkCondAndAfterWhile + ":");
         }
