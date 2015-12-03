@@ -91,7 +91,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     }
 
     @SuppressWarnings("unchecked")
-    private void newScope() {
+    private void newScope(String scopeName) {
         if (DEBUG) {
             System.out.println("-newScope");
         }
@@ -100,6 +100,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         SymbolTableWrapper<String> st = new SymbolTableWrapper<String>(
                         currentST);
         currentST = st;
+        currentST.setScopeName(scopeName);
         saveStack = (Stack<String>) stack.clone();
     }
 
@@ -893,6 +894,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         } else {
             offset = currentST.lookUpAllLabel(varName);
         }
+        offset += argListAdjustment;
+        System.out.println(offset + " " + spPosition);
         // assignReg();
         if (offset == 0) {
             if (varType.equals("CHAR") || varType.equals("BOOL")) {
@@ -1034,7 +1037,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             }
         }
         currentST.setScopeSize(spPosition);
-        System.err.println(spPosition);
         spPosition = 0;
     }
 
@@ -1046,6 +1048,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         System.out.println("Current pass: " + PASS);
         if (PASS == 1) {
             currentST = new SymbolTableWrapper<String>();
+            currentST.setScopeName("main");
             initReg();
         }
 
@@ -1055,7 +1058,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
         // Resets
         nonFunctionBlockCount = 0;
-
 
         // Traverse all functions first
         List<FuncContext> funcList = ctx.func();
@@ -1198,7 +1200,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     public Void visitReturnstatement(
                     WACCParser.ReturnstatementContext ctx) {
         if (DEBUG) {
-            System.out.println("-Return statement");
+            System.out.println("-Return statement "
+                            + currentFunctionName);
         }
         visit(ctx.expr());
 
@@ -1207,9 +1210,17 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         String exprName = stack.pop();
 
         if (PASS == 2) {
-            // assignReg(); // Set the register after visiting expression
             text.add("MOV r0, " + currentReg + "");
-            deallocateScopeMemory(currentST.getScopeSize());
+
+            int scopeSize = currentST.getScopeSize();
+            
+            // [Z - HOTFIX] Fix to properly deallocate memory
+            SymbolTableWrapper<String> tempST = currentST;
+            while (!tempST.getScopeName().equals(currentFunctionName)) {
+                tempST = tempST.getEncSymTable();
+                scopeSize += tempST.getScopeSize();
+            }
+            deallocateScopeMemory(scopeSize);
             text.add("POP {pc}");
         }
         return null;
@@ -1329,7 +1340,13 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
         for (int i = 0; i < 2; i++) {
             // 0: then block; 1: else block
-            newScope();
+            if (PASS == 1) {
+                if (i == 0) {
+                    newScope(elseBlock);
+                } else {
+                    newScope(postFiBlock);
+                }
+            }
 
             if (PASS == 2) {
                 if (i == 0) {
@@ -1381,16 +1398,18 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-While statement");
         }
-        
+
         // TODO: [While] - Fixed nested while loops
 
         String checkCondAndAfterWhile = "L" + nonFunctionBlockCount++;
         String loopBodyLabel = "L" + nonFunctionBlockCount++;
 
-        newScope();
-        
+        if (PASS == 1) {
+            newScope(loopBodyLabel);
+        }
+
         int scopeSize = 0;
-        
+
         if (PASS == 2) {
             // Branch to checking condition and code following while loop
             text.add("B " + checkCondAndAfterWhile);
@@ -1401,14 +1420,14 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             scopeSize = currentST.getScopeSize();
             allocateScopeMemory(scopeSize);
         }
-        
+
         visit(ctx.stat());
-        
+
         if (PASS == 1) {
             adjustLabels();
             storeScopes.put(loopBodyLabel, currentST);
         }
-        
+
         freeScope();
 
         if (PASS == 2) {
@@ -1583,6 +1602,9 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         visit(ctx.pairElem());
         return null;
     }
+    
+    // TODO: [Z - HOTFIX] To make the argument list work correctly
+    int argListAdjustment = 0;
 
     public Void visitArg_list(WACCParser.Arg_listContext ctx) {
         if (DEBUG) {
@@ -1592,6 +1614,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         // List of args
         List<ExprContext> args = ctx.expr();
         int argsMem = 0;
+        argListAdjustment = 0;
         for (int i = args.size() - 1; i >= 0; i--) {
             visit(args.get(i));
             String exprType = stack.pop();
@@ -1601,12 +1624,15 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
                 if (exprType.equals("CHAR")
                                 || exprType.equals("BOOL")) {
                     text.add("STRB " + currentReg + ", [sp, #-1]!");
+                    argListAdjustment += 1;
                 } else {
                     text.add("STR " + currentReg + ", [sp, #-4]!");
+                    argListAdjustment += 4;
                 }
             }
             argsMem += spaceForType(exprType);
         }
+        argListAdjustment = 0;
         stack.push(Integer.toString(argsMem));
         return null;
     }
@@ -2168,7 +2194,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
 
         FUNCTION func = currentST.lookUpAllFunction(functionName);
-        newScope();
+        newScope(functionName);
 
         // Add params in new scope
         if (PASS == 1) {
@@ -2207,7 +2233,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             // Update the positions of variables in the memory
             adjustLabels();
             storeScopes.put(functionName, currentST);
-            currentST.printST();
         }
 
         freeScope();

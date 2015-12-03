@@ -10,6 +10,15 @@ public class SymbolTableWrapper<V> {
     SymbolTableWrapper<V> encSymTable;
     private int scopeSize = 0;
     private int spPos = 0;
+    private String scopeName = null;
+
+    public String getScopeName() {
+        return scopeName;
+    }
+
+    public void setScopeName(String scopeName) {
+        this.scopeName = scopeName;
+    }
 
     public int getSpPos() {
         return spPos;
