@@ -103,12 +103,15 @@ public class SymbolTableWrapper<V> {
 
     public Integer lookUpAllLabel(V name) {
         SymbolTableWrapper<V> temp = this;
+        int offset = 0;
         while (temp != null) {
 
             Integer obj = temp.stLabel.lookUp(name);
             if (obj != null) {
-                return obj;
+                return obj + offset;
             }
+            offset += this.getScopeSize(); // For correct memory location in
+                                           // nested scopes
             temp = temp.encSymTable;
         }
         return null;
@@ -125,7 +128,7 @@ public class SymbolTableWrapper<V> {
     public SymbolTableWrapper<V> getEncSymTable() {
         return encSymTable;
     }
-    
+
     public void printST() {
         System.out.println("----- Print ST -----");
         System.out.println("Scopesize: " + scopeSize);

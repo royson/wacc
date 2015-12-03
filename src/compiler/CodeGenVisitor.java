@@ -26,7 +26,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     private SymbolTableWrapper<String> currentST;
     private Stack<String> stack = new Stack<String>();
     private Stack<String> saveStack = new Stack<String>();
-    private HashMap<String, SymbolTableWrapper<String>> functionScopes = new HashMap<>();
+    private HashMap<String, SymbolTableWrapper<String>> storeScopes = new HashMap<>();
     private String currentFunctionName = "";
 
     private final static String INT = "INT";
@@ -92,6 +92,9 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
     @SuppressWarnings("unchecked")
     private void newScope() {
+        if (DEBUG) {
+            System.out.println("-newScope");
+        }
         SymbolTableWrapper<String> st = new SymbolTableWrapper<String>(
                         currentST);
         currentST = st;
@@ -100,6 +103,9 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
     @SuppressWarnings("unchecked")
     private void freeScope() {
+        if (DEBUG) {
+            System.out.println("-freeScope");
+        }
         currentST = currentST.getEncSymTable();
         stack = (Stack<String>) saveStack.clone();
     }
@@ -828,7 +834,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Store to memory " + varName + " "
                             + varType);
-            currentST.printST();
         }
         int offset = 0;
         if (currentST.lookUpAllLabel(varName + ".p") != null) {
@@ -877,6 +882,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Load from memory " + varName + " "
                             + varType);
+            currentST.printST();
         }
         int offset = 0;
         if (currentST.lookUpAllLabel(varName + ".p") != null) {
@@ -1012,6 +1018,22 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         return 4;
     }
 
+    private void adjustLabels() {
+        HashMap<String, Integer> stHashMap = currentST.getStLabel()
+                        .getSt();
+        for (String key : stHashMap.keySet()) {
+            if (!key.contains(".p")) {
+                // Position for variables
+                stHashMap.put(key, spPosition - stHashMap.get(key));
+            } else {
+                // Position for param
+                stHashMap.put(key, spPosition + stHashMap.get(key));
+            }
+        }
+        currentST.setScopeSize(spPosition);
+        spPosition = 0;
+    }
+
     /* Write functions to traverse tree below here */
 
     /* Visit the main program */
@@ -1026,6 +1048,9 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Program");
         }
+
+        // Resets
+        nonFunctionBlockCount = 0;
 
         scopeStack.push("main");
 
@@ -1283,42 +1308,68 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-If statement");
         }
 
-        String elseBlock = "";
-        String postFiBlock = "";
-
         visit(ctx.expr());
 
         // Clear the stack
         stack.pop();
         stack.pop();
 
+        String elseBlock = "L" + nonFunctionBlockCount++;
+        String postFiBlock = "L" + nonFunctionBlockCount++;
+
         if (PASS == 2) {
             // Check condition; branch if false
             text.add("CMP " + currentReg + ", #0");
-            elseBlock = "L" + nonFunctionBlockCount++;
             text.add("BEQ " + elseBlock);
         }
+
+        int scopeSize = 0;
 
         for (int i = 0; i < 2; i++) {
             // 0: then block; 1: else block
             newScope();
+
+            if (PASS == 2) {
+                if (i == 0) {
+                    currentST = storeScopes.get(elseBlock);
+                } else {
+                    currentST = storeScopes.get(postFiBlock);
+                }
+                scopeSize = currentST.getScopeSize();
+                allocateScopeMemory(scopeSize);
+            }
+
             visit(ctx.stat(i));
+
+            /*
+             * if (PASS == 2) { text.add("f_" + functionName + ":");
+             * text.add("PUSH {lr}"); currentST = storeScopes.get(functionName);
+             * allocateScopeMemory(currentST.getScopeSize()); }
+             * 
+             * if (PASS == 1) { // Update the positions of variables in the
+             * memory adjustLabels(); storeScopes.put(functionName, currentST);
+             * }
+             */
+            if (PASS == 1) {
+                adjustLabels();
+                if (i == 0) {
+                    storeScopes.put(elseBlock, currentST);
+                } else {
+                    storeScopes.put(postFiBlock, currentST);
+                }
+            }
+
             freeScope();
 
-            if (PASS == 2 && i == 0) {
-                // Branch to code after fi
-                postFiBlock = "L" + nonFunctionBlockCount++;
-                text.add("B " + postFiBlock);
-                // giving a new scope for each stat
-
-                // else block
-                text.add(elseBlock + ":");
+            if (PASS == 2) {
+                deallocateScopeMemory(scopeSize);
+                if (i == 0) {
+                    text.add("B " + postFiBlock);
+                    text.add(elseBlock + ":");
+                } else {
+                    text.add(postFiBlock + ":");
+                }
             }
-        }
-
-        if (PASS == 2) {
-            // start of code after fi
-            text.add(postFiBlock + ":");
         }
         return null;
     }
@@ -1553,7 +1604,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         // TODO: [Z] Assign RHS call Traversal removed at this point
         String varType = stack.pop();
         String varName = stack.pop();
-        
+
         IDENTIFIER obj = currentST.lookUpAllFunction(funcName);
 
         if (PASS == 2) {
@@ -1575,11 +1626,11 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             text.add("MOV " + currentReg + ", r0");
             // TODO: This is where the error probably is
             storeToMemory(varName, varType);
-//            if (varType.equals("BOOL") || varType.equals("CHAR")) {
-//                text.add("STRB " + currentReg + ", [sp]");
-//            } else {
-//                text.add("STR " + currentReg + ", [sp]");
-//            }
+            // if (varType.equals("BOOL") || varType.equals("CHAR")) {
+            // text.add("STRB " + currentReg + ", [sp]");
+            // } else {
+            // text.add("STR " + currentReg + ", [sp]");
+            // }
         }
 
         return null;
@@ -2129,7 +2180,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (PASS == 2) {
             text.add("f_" + functionName + ":");
             text.add("PUSH {lr}");
-            currentST = functionScopes.get(functionName);
+            currentST = storeScopes.get(functionName);
             allocateScopeMemory(currentST.getScopeSize());
         }
 
@@ -2139,28 +2190,13 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (PASS == 1) {
             // Update the positions of variables in the memory
             adjustLabels();
-            functionScopes.put(functionName, currentST);
+            storeScopes.put(functionName, currentST);
+            currentST.printST();
         }
 
         freeScope();
         currentFunctionName = "";
         visit(ctx.END());
         return null;
-    }
-
-    private void adjustLabels() {
-        HashMap<String, Integer> stHashMap = currentST.getStLabel()
-                        .getSt();
-        for (String key : stHashMap.keySet()) {
-            if (!key.contains(".p")) {
-                // Position for variables
-                stHashMap.put(key, spPosition - stHashMap.get(key));
-            } else {
-                // Position for param
-                stHashMap.put(key, spPosition + stHashMap.get(key));
-            }
-        }
-        currentST.setScopeSize(spPosition);
-        spPosition = 0;
     }
 }
