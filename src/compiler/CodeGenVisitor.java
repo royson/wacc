@@ -10,8 +10,10 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import semantics.ARRAY;
+import semantics.FUNCTION;
 import semantics.IDENTIFIER;
 import semantics.PAIR;
+import semantics.PARAM;
 import semantics.SymbolTableWrapper;
 import semantics.VARIABLE;
 import antlr.WACCParser;
@@ -24,6 +26,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     private SymbolTableWrapper<String> currentST;
     private Stack<String> stack = new Stack<String>();
     private Stack<String> saveStack = new Stack<String>();
+    private HashMap<String, SymbolTableWrapper<String>> functionScopes = new HashMap<>();
     private String currentFunctionName = "";
 
     private final static String INT = "INT";
@@ -85,15 +88,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
     private void printspPosition() {
         System.out.println("STACK POINTER pos: " + spPosition);
-    }
-
-    @SuppressWarnings("unchecked")
-    private void newScope(String scopeName) {
-        SymbolTableWrapper<String> st = new SymbolTableWrapper<String>(
-                        currentST);
-        currentST = st;
-        saveStack = (Stack<String>) stack.clone();
-        text.add("PUSH {lr}");
     }
 
     @SuppressWarnings("unchecked")
@@ -870,7 +864,16 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     }
 
     private void loadFromMemory(String varName, String varType) {
-        int offset = currentST.lookUpAllLabel(varName);
+        if (DEBUG) {
+            System.out.println("-Load from memory " + varName + " "
+                            + varType);
+        }
+        int offset = 0;
+        if (currentST.lookUpLabel(varName + ".p") != null) {
+            offset = currentST.lookUpLabel(varName + ".p");
+        } else {
+            offset = currentST.lookUpAllLabel(varName);
+        }
         // assignReg();
         if (offset == 0) {
             if (varType.equals("CHAR") || varType.equals("BOOL")) {
@@ -1009,6 +1012,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             currentST = new SymbolTableWrapper<String>();
             initReg();
         }
+
         if (DEBUG) {
             System.out.println("-Program");
         }
@@ -1017,6 +1021,25 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
         // Traverse all functions first
         List<FuncContext> funcList = ctx.func();
+        for (FuncContext f : funcList) {
+            if (PASS == 1) {
+                String functionName = f.IDENT().toString();
+
+                visit(f.type());
+
+                String functionReturnType = stack.pop();
+                FUNCTION newFunc = new FUNCTION(functionReturnType);
+
+                currentST.addFunction(functionName, newFunc);
+
+                stack.push(functionName);
+
+                if (f.param_list() != null) {
+                    visit(f.param_list());
+                }
+            }
+        }
+
         for (FuncContext f : funcList) {
             visit(f);
         }
@@ -1036,14 +1059,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         visit(ctx.stat());
 
         if (PASS == 1) {
-            // Update the positions of variables in the memory
-            HashMap<String, Integer> stHashMap = currentST
-                            .getStLabel().getSt();
-            for (String key : stHashMap.keySet()) {
-                stHashMap.put(key, spPosition - stHashMap.get(key));
-            }
-            currentST.setScopeSize(spPosition);
-            spPosition = 0;
+            adjustLabels();
         }
 
         /*
@@ -1375,15 +1391,26 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             elemLoc = stack.pop();
         }
 
-        // TODO: [Z - Array] This code result in duplicate loads to currentReg when doing
+        // TODO: [Z - Array] This code result in duplicate loads to currentReg
+        // when doing
         // operations like a[i] = i
         visit(ctx.expr());
         String exprType = stack.pop();
         String exprName = stack.pop();
 
         if (PASS == 2) {
+            
+            // To handle arrays
             if (Utils.isArrayElem(varName)) {
                 storeToArrayElem(arrayName, varType, elemLoc);
+            } else if(exprName.equals(varName)){
+                // TODO: [Z - HOTFIX] for param reassignment
+                
+                int offset = currentST.lookUpAllLabel(varName);
+                
+                // Overwrite the param's offset
+                currentST.addLabel(varName+".p", offset);
+                storeToMemory(varName, varType);
             } else {
                 storeToMemory(varName, varType);
             }
@@ -1486,9 +1513,23 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
         // List of args
         List<ExprContext> args = ctx.expr();
-        for (int i = 0; i < args.size(); i++) {
+        int argsMem = 0;
+        for (int i = args.size() - 1; i >= 0; i--) {
             visit(args.get(i));
+            String exprType = stack.pop();
+            String exprName = stack.pop();
+
+            if (PASS == 2) {
+                if (exprType.equals("CHAR")
+                                || exprType.equals("BOOL")) {
+                    text.add("STRB " + currentReg + ", [sp #-1]!");
+                } else {
+                    text.add("STR " + currentReg + ", [sp #-4]!");
+                }
+            }
+            argsMem += spaceForType(exprType);
         }
+        stack.push(Integer.toString(argsMem));
         return null;
     }
 
@@ -1497,6 +1538,34 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Assign RHS call");
         }
         // TODO: [Z] Assign RHS call Traversal removed at this point
+        String varType = stack.pop();
+        String varName = stack.pop();
+
+        String funcName = ctx.IDENT().toString();
+
+        IDENTIFIER obj = currentST.lookUpAllFunction(funcName);
+
+        if (PASS == 2) {
+        }
+
+        stack.push(funcName);
+        if (ctx.arg_list() != null) {
+            visit(ctx.arg_list());
+        }
+        String argsMem = stack.pop(); // Retrieve arg memory
+        stack.pop(); // Remove function name
+
+        if (PASS == 2) {
+            text.add("BL f_" + funcName);
+            text.add("ADD sp, sp, #" + argsMem);
+            text.add("MOV " + currentReg + ", r0");
+            if (varType.equals("BOOL") || varType.equals("CHAR")) {
+                text.add("STRB " + currentReg + ", [sp]");
+            } else {
+                text.add("STR " + currentReg + ", [sp]");
+            }
+        }
+
         return null;
     }
 
@@ -1968,9 +2037,21 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Param_list");
         }
+        String functionName = stack.pop();
+        FUNCTION curFunc = currentST.lookUpAllFunction(functionName);
+
+        if (curFunc == null) {
+            // semantically never reach
+            Utils.semanticError(ctx, "Something went wrong");
+        }
+
+        curFunc.setParamSize(ctx.param().size());
+
         for (int i = 0; i < ctx.param().size(); i++) {
+            stack.push(functionName);
             visit(ctx.param(i));
         }
+
         return null;
     }
 
@@ -1978,7 +2059,22 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Param");
         }
+        String functionName = stack.pop();
+        FUNCTION curFunc = currentST.lookUpAllFunction(functionName);
+
+        if (curFunc == null) {
+            // semantically never reach
+            Utils.semanticError(ctx, "Something went wrong");
+        }
+
         visit(ctx.type());
+        String paramReturnType = stack.pop();
+        String paramName = ctx.IDENT().toString();
+
+        if (PASS == 1) {
+            PARAM newParam = new PARAM(paramReturnType, paramName);
+            curFunc.addParam(newParam);
+        }
         return null;
     }
 
@@ -1988,19 +2084,71 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Function: " + functionName);
         }
 
-        text.add("f_" + functionName + ":");
-        newScope(functionName);
+        FUNCTION func = currentST.lookUpAllFunction(functionName);
+        newScope();
 
-        // Visit parameters
-        if (ctx.param_list() != null) {
-            visit(ctx.param_list());
+        // Add params in new scope
+        if (PASS == 1) {
+            int paramLoc = 4;
+            for (int i = 0; i < func.getParamSize(); i++) {
+                PARAM param = func.getParam(i);
+
+                String paramType = param.getType();
+
+                if (paramType.startsWith("Pair")
+                                && !paramType.endsWith("[]")) {
+                    PAIR p = new PAIR(paramType);
+                    currentST.addParam(param.getName(), p);
+                } else if (Utils.isAnArray(paramType)) {
+                    ARRAY a = new ARRAY(paramType);
+                    currentST.addParam(param.getName(), a);
+                } else {
+                    currentST.addParam(param.getName(), param);
+                }
+                currentST.addLabel(param.getName() + ".p", paramLoc);
+                paramLoc += spaceForType(paramType);
+            }
+        }
+
+        if (PASS == 2) {
+            text.add("f_" + functionName + ":");
+            text.add("PUSH {lr}");
+            currentST = functionScopes.get(functionName);
+            allocateScopeMemory(currentST.getScopeSize());
         }
 
         currentFunctionName = functionName;
         visit(ctx.stat());
+
+        if (PASS == 1) {
+            // Update the positions of variables in the memory
+            adjustLabels();
+            functionScopes.put(functionName, currentST);
+        }
+
+        if (PASS == 2) {
+            deallocateScopeMemory(currentST.getScopeSize());
+        }
+
         freeScope();
         currentFunctionName = "";
         visit(ctx.END());
         return null;
+    }
+
+    private void adjustLabels() {
+        HashMap<String, Integer> stHashMap = currentST.getStLabel()
+                        .getSt();
+        for (String key : stHashMap.keySet()) {
+            if (!key.contains(".p")) {
+                // Position for variables
+                stHashMap.put(key, spPosition - stHashMap.get(key));
+            } else {
+                // Position for param
+                stHashMap.put(key, spPosition + stHashMap.get(key));
+            }
+        }
+        currentST.setScopeSize(spPosition);
+        spPosition = 0;
     }
 }
