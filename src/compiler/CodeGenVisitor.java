@@ -825,7 +825,17 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
     /* Functions for dealing with memory */
     private void storeToMemory(String varName, String varType) {
-        int offset = currentST.lookUpAllLabel(varName);
+        if (DEBUG) {
+            System.out.println("-Store to memory " + varName + " "
+                            + varType);
+            currentST.printST();
+        }
+        int offset = 0;
+        if (currentST.lookUpAllLabel(varName + ".p") != null) {
+            offset = currentST.lookUpAllLabel(varName + ".p");
+        } else {
+            offset = currentST.lookUpAllLabel(varName);
+        }
         if (varType.equals("BOOL") || varType.equals("CHAR")) {
             if (offset != 0) {
                 text.add("STRB " + currentReg + ", [sp, #" + offset
@@ -869,8 +879,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
                             + varType);
         }
         int offset = 0;
-        if (currentST.lookUpLabel(varName + ".p") != null) {
-            offset = currentST.lookUpLabel(varName + ".p");
+        if (currentST.lookUpAllLabel(varName + ".p") != null) {
+            offset = currentST.lookUpAllLabel(varName + ".p");
         } else {
             offset = currentST.lookUpAllLabel(varName);
         }
@@ -1172,6 +1182,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (PASS == 2) {
             // assignReg(); // Set the register after visiting expression
             text.add("MOV r0, " + currentReg + "");
+            deallocateScopeMemory(currentST.getScopeSize());
             text.add("POP {pc}");
         }
         return null;
@@ -1534,15 +1545,15 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     }
 
     public Void visitAssignrhscall(WACCParser.AssignrhscallContext ctx) {
+        String funcName = ctx.IDENT().toString();
+
         if (DEBUG) {
-            System.out.println("-Assign RHS call");
+            System.out.println("-Assign RHS call " + funcName);
         }
         // TODO: [Z] Assign RHS call Traversal removed at this point
         String varType = stack.pop();
         String varName = stack.pop();
-
-        String funcName = ctx.IDENT().toString();
-
+        
         IDENTIFIER obj = currentST.lookUpAllFunction(funcName);
 
         if (PASS == 2) {
@@ -1562,11 +1573,13 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
                 text.add("ADD sp, sp, #" + argsMem);
             }
             text.add("MOV " + currentReg + ", r0");
-            if (varType.equals("BOOL") || varType.equals("CHAR")) {
-                text.add("STRB " + currentReg + ", [sp]");
-            } else {
-                text.add("STR " + currentReg + ", [sp]");
-            }
+            // TODO: This is where the error probably is
+            storeToMemory(varName, varType);
+//            if (varType.equals("BOOL") || varType.equals("CHAR")) {
+//                text.add("STRB " + currentReg + ", [sp]");
+//            } else {
+//                text.add("STR " + currentReg + ", [sp]");
+//            }
         }
 
         return null;
@@ -2127,10 +2140,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             // Update the positions of variables in the memory
             adjustLabels();
             functionScopes.put(functionName, currentST);
-        }
-
-        if (PASS == 2) {
-            deallocateScopeMemory(currentST.getScopeSize());
         }
 
         freeScope();

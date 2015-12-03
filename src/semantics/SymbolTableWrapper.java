@@ -125,7 +125,7 @@ public class SymbolTableWrapper<V> {
     public SymbolTableWrapper<V> getEncSymTable() {
         return encSymTable;
     }
-
+    
     public void printST() {
         System.out.println("----- Print ST -----");
         System.out.println("Scopesize: " + scopeSize);
