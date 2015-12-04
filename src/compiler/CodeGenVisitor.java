@@ -109,6 +109,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-freeScope");
         }
+        
         currentST = currentST.getEncSymTable();
         spPosition = currentST.getSpPos();
         stack = (Stack<String>) saveStack.clone();
@@ -1455,10 +1456,12 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Begin end statement ");
         }
-        // TODO: [Z] Begin-end statement removed for now
-        newScope("beginEndStat");
-        visit(ctx.stat());
-        freeScope();
+        //every time begin is visited, new scope is created
+        int scopeSize = 0;
+//        newScope("beginEndStat" + scopeSize);
+//        allocateScopeMemory();
+//        visit(ctx.stat());
+//        freeScope();
         return null;
     }
 
