@@ -1456,9 +1456,9 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Begin end statement ");
         }
         // TODO: [Z] Begin-end statement removed for now
-        // newScope();
-        // visit(ctx.stat());
-        // freeScope();
+        newScope("beginEndStat");
+        visit(ctx.stat());
+        freeScope();
         return null;
     }
 
