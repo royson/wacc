@@ -1296,12 +1296,31 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
         visit(ctx.expr());
 
+        printStack();
+        currentST.printST();
         // Clear the stack
         String varType = stack.pop(); // Extract the type
-        stack.pop(); // Clear the name
+        String varName = stack.pop(); // Clear the name
+        int offset = 0;
+        
+        if((Utils.isANullPair(varType) || Utils.isAPair(varType))){
+          if(!stack.isEmpty()){
+          stack.pop();
+          varName = stack.pop();
+          System.out.println("VARNAMEEEEEE:" + varName);
+          offset = currentST.lookUpAllLabel(varName);
+          }
+        }
 
         if (PASS == 2) {
             // assignReg(); // Set the register after visiting expression
+          	if(Utils.isANullPair(varType) || Utils.isAPair(varType)){
+          	  if(offset == 0){
+          		text.add("LDR r4, [sp]");
+          	  }else{
+          		text.add("LDR r4, [sp,#" +offset+"]");
+          	  }
+          	}
             text.add("MOV r0, " + currentReg + "");
             printHelper(varType);
         }
@@ -1324,6 +1343,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (PASS == 2) {
             // TODO: [Print] - figure out what this is for
             // assignReg(); // Set the register after visiting expression
+          
             text.add("MOV r0, " + currentReg + "");
             printHelper(varType);
             text.add("BL p_print_ln");
@@ -1625,6 +1645,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             } else if(lhs){
               text.add("MOV r0, " + currentReg);
               text.add("BL p_check_null_pointer");
+              
+              int offset = currentST.lookUpAllLabel(varName);
               if(offsetLHS){
             	text.add("LDR "+currentReg+", ["+currentReg+", #4]");
               }else{
@@ -1641,7 +1663,10 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             } else {
                 storeToMemory(varName, varType);
             }
+            
+            
         }
+        
         return null;
     }
 
@@ -1947,16 +1972,35 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         
         boolean lhs = false;
         
+        printStack();
         if(PASS == 2){
           if(stack.peek().equals("LHS")) {
             lhs = true;
             stack.pop();
           }
         }
-        
+
         visit(ctx.expr());
+
+        String exprType = stack.pop();
+        String exprName = stack.pop();
+        String strType = stack.pop();
+        String strName = stack.pop();
+        
+        int offset = currentST.lookUpAllLabel(exprName);
+        int strOffset = currentST.lookUpAllLabel(strName);
+        
+        stack.push(strName);
+        stack.push(strType);
+        stack.push(exprName);
+        stack.push(exprType);
         
         if(PASS == 2 && !lhs){
+          if(offset == 0){
+        	text.add("LDR r4, [sp]");
+          }else{
+        	text.add("LDR r4, [sp,#"+offset+"]");
+          }
           text.add("MOV r0, " + currentReg);
           text.add("BL p_check_null_pointer");
           checkNullPointer();
@@ -1967,10 +2011,18 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
           String elemType = stack.peek();
           if (elemType.equals("CHAR") || elemType.equals("BOOL")) {
               text.add("LDRSB " + currentReg + ", [" + currentReg + "]");
-              text.add("STRB " + currentReg + ", [sp]");
+              if(strOffset == 0){
+            	text.add("STRB " + currentReg + ", [sp]");
+              }else{
+            	text.add("STRB " + currentReg + ", [sp, #"+strOffset+"]");
+              }
           } else {
               text.add("LDR " + currentReg + ", [" + currentReg + "]");
-              text.add("STR " + currentReg + ", [sp]");
+              if(strOffset == 0){
+            	text.add("STR " + currentReg + ", [sp]");
+              }else{
+            	text.add("STR " + currentReg + ", [sp, #"+strOffset+"]");
+              }
           }
         
         }
@@ -1993,8 +2045,28 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             stack.pop();
           }
         }
+        
         visit(ctx.expr());
+        
+        String exprType = stack.pop();
+        String exprName = stack.pop();
+        String strType = stack.pop();
+        String strName = stack.pop();
+        
+        int offset = currentST.lookUpAllLabel(exprName);
+        int strOffset = currentST.lookUpAllLabel(strName);
+        
+        stack.push(strName);
+        stack.push(strType);
+        stack.push(exprName);
+        stack.push(exprType);
+
         if(PASS == 2 && !lhs){
+          if(offset == 0){
+        	text.add("LDR r4, [sp]");
+          }else{
+        	text.add("LDR r4, [sp,#"+offset+"]");
+          }
           text.add("MOV r0, " + currentReg);
           text.add("BL p_check_null_pointer");
           checkNullPointer();
@@ -2006,10 +2078,18 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
   
           if (elemType.equals("CHAR") || elemType.equals("BOOL")) {
               text.add("LDRSB " + currentReg + ", [" + currentReg + "]");
-              text.add("STRB " + currentReg + ", [sp]");
+              if(strOffset == 0){
+            	text.add("STRB " + currentReg + ", [sp]");
+              }else{
+            	text.add("STRB " + currentReg + ", [sp, #"+strOffset+"]");
+              }
           } else {
               text.add("LDR " + currentReg + ", [" + currentReg + "]");
-              text.add("STR " + currentReg + ", [sp]");
+              if(strOffset == 0){
+            	text.add("STR " + currentReg + ", [sp]");
+              }else{
+            	text.add("STR " + currentReg + ", [sp, #"+strOffset+"]");
+              }
           }
         }
         
@@ -2234,7 +2314,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
         String varName = ctx.IDENT().toString();
         stack.push(varName);
-        
+
         String varType = checkDefinedVariable(ctx);
         stack.push(varType);
         
