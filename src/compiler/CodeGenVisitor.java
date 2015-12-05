@@ -135,6 +135,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     private boolean printSTRING = false;
     private boolean printBOOL = false;
     private boolean printReference = false;
+    private boolean nullPointer = false;
 
     private void addPrintINT() {
         if (printINT) {
@@ -366,6 +367,28 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         print.add("BL exit");
         addPrintSTRING();
     }
+    
+    private void checkNullPointer() {
+      if (nullPointer) {
+          return;
+      }
+      nullPointer = true;
+      String message 
+      	= "\"NullReferenceError: dereference a null reference\\n\\0\"";
+      int cMsgCount = messageCount;
+
+      // Modify data
+      addMessageToData(message);
+
+      // Add to print list
+      print.add("p_check_null_pointer:");
+      print.add("PUSH {lr}");
+      print.add("CMP r0, #0");
+      print.add("LDREQ r0, =msg_" + cMsgCount);
+      print.add("BLEQ p_throw_runtime_error");
+      print.add("POP {pc}");
+      addThrowRuntimeError();
+  }
 
     private void addCheckArrayBounds() {
         if (arrayBounds) {
@@ -1850,7 +1873,25 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Assign Pair fst Elem");
         }
         visit(ctx.expr());
+        
+        text.add("MOV r0, " + currentReg);
+        text.add("BL p_check_null_pointer");
+        text.add("LDR " + currentReg + ", ["+ currentReg + "]");
+        
+        
         visitPairElem(ctx, true);
+        String elemType = stack.peek();
+        if (elemType.equals("CHAR")
+            || elemType.equals("BOOL")) {
+          text.add("LDRSB " + currentReg + ", ["+ currentReg + "]");
+          text.add("STRB " + currentReg + ", [sp]");
+        } else {
+          text.add("LDR " + currentReg + ", ["+ currentReg + "]");
+          text.add("STR " + currentReg + ", [sp]");
+        }
+        checkNullPointer();
+        
+        printStack();
         return null;
     }
 
@@ -1859,7 +1900,24 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Assign Pair snd Elem");
         }
         visit(ctx.expr());
+        
+        text.add("MOV r0, " + currentReg);
+        text.add("BL p_check_null_pointer");
+        text.add("LDR " + currentReg + ", ["+ currentReg + ", #4]");
+
         visitPairElem(ctx, false);
+        String elemType = stack.peek();
+        
+        if (elemType.equals("CHAR")
+            || elemType.equals("BOOL")) {
+          text.add("LDRSB " + currentReg + ", ["+ currentReg + "]");
+          text.add("STRB " + currentReg + ", [sp]");
+        } else {
+          text.add("LDR " + currentReg + ", ["+ currentReg + "]");
+          text.add("STR " + currentReg + ", [sp]");
+        }
+        
+        checkNullPointer();
         return null;
     }
 
