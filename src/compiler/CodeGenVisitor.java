@@ -1213,7 +1213,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             text.add("MOV r0, " + currentReg + "");
 
             int scopeSize = currentST.getScopeSize();
-            
+
             // [Z - HOTFIX] Fix to properly deallocate memory
             SymbolTableWrapper<String> tempST = currentST;
             while (!tempST.getScopeName().equals(currentFunctionName)) {
@@ -1602,7 +1602,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         visit(ctx.pairElem());
         return null;
     }
-    
+
     // TODO: [Z - HOTFIX] To make the argument list work correctly
     int argListAdjustment = 0;
 
