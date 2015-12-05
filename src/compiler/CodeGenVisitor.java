@@ -52,6 +52,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     private int messageCount = 0;
     private int branchCount = 0;
     private int nonFunctionBlockCount = 0;
+    private int beginEndScopeCount = 0;
 
     // TODO: [Scope] spPosition has to be modified on entering / exiting scope
     private int spPosition = 0;
@@ -109,7 +110,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-freeScope");
         }
-        
+
         currentST = currentST.getEncSymTable();
         spPosition = currentST.getSpPos();
         stack = (Stack<String>) saveStack.clone();
@@ -839,13 +840,9 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Store to memory " + varName + " "
                             + varType);
+            currentST.printST();
         }
-        int offset = 0;
-        if (currentST.lookUpAllLabel(varName + ".p") != null) {
-            offset = currentST.lookUpAllLabel(varName + ".p");
-        } else {
-            offset = currentST.lookUpAllLabel(varName);
-        }
+        int offset = calculateOffset(varName);
         if (varType.equals("BOOL") || varType.equals("CHAR")) {
             if (offset != 0) {
                 text.add("STRB " + currentReg + ", [sp, #" + offset
@@ -889,15 +886,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
                             + varType);
             currentST.printST();
         }
-        int offset = 0;
-        if (currentST.lookUpAllLabel(varName + ".p") != null) {
-            offset = currentST.lookUpAllLabel(varName + ".p");
-        } else {
-            offset = currentST.lookUpAllLabel(varName);
-        }
-        offset += argListAdjustment;
-        System.out.println(offset + " " + spPosition);
-        // assignReg();
+        int offset = calculateOffset(varName);
         if (offset == 0) {
             if (varType.equals("CHAR") || varType.equals("BOOL")) {
                 text.add("LDRSB " + currentReg + ", [sp]");
@@ -913,6 +902,21 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
                                 + "]");
             }
         }
+    }
+
+    private int calculateOffset(String varName) {
+        int offset = 0;
+        if (currentST.lookUpAllLabel(varName + ".p") != null) {
+            offset = currentST.lookUpAllLabel(varName + ".p");
+        } else if (currentST.lookUpIdentifier(varName) == null) {
+            offset = currentST.getScopeSize();
+            offset += currentST.getEncSymTable().lookUpAllLabel(
+                            varName);
+        } else {
+            offset = currentST.lookUpLabel(varName);
+        }
+        offset += argListAdjustment;
+        return offset;
     }
 
     private void loadFromArrayElem(String arrayReg, String elemReg,
@@ -1059,6 +1063,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
         // Resets
         nonFunctionBlockCount = 0;
+        beginEndScopeCount = 0;
 
         // Traverse all functions first
         List<FuncContext> funcList = ctx.func();
@@ -1137,14 +1142,22 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             spPosition += spaceForType(varType);
             currentST.addLabel(varName, spPosition);
 
-            if (!varType.startsWith("Pair")
-                            && !(Utils.isAnArray(varType))) {
-                currentST.addIdentifier(varName,
-                                new VARIABLE(varType));
-            } else if (Utils.isAnArray(varType)) {
-                currentST.addIdentifier(varName, new ARRAY(varType));
-            }
+            // if (!varType.startsWith("Pair")
+            // && !(Utils.isAnArray(varType))) {
+            // currentST.addIdentifier(varName,
+            // new VARIABLE(varType));
+            // } else if (Utils.isAnArray(varType)) {
+            // currentST.addIdentifier(varName, new ARRAY(varType));
+            // }
         }
+
+        if (!varType.startsWith("Pair")
+                        && !(Utils.isAnArray(varType))) {
+            currentST.addIdentifier(varName, new VARIABLE(varType));
+        } else if (Utils.isAnArray(varType)) {
+            currentST.addIdentifier(varName, new ARRAY(varType));
+        }
+
         visit(ctx.assignRHS());
         return null;
     }
@@ -1456,12 +1469,39 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Begin end statement ");
         }
-        //every time begin is visited, new scope is created
+        // every time begin is visited, new scope is created
+        String scopeName = "beginEndStat" + beginEndScopeCount;
+        beginEndScopeCount += 1;
+        // int scopeSize = 0;
+        // newScope("beginEndStat" + scopeSize);
+        // allocateScopeMemory();
+
+        if (PASS == 1) {
+            newScope(scopeName);
+        }
+
         int scopeSize = 0;
-//        newScope("beginEndStat" + scopeSize);
-//        allocateScopeMemory();
-//        visit(ctx.stat());
-//        freeScope();
+
+        // Load the scope from memory on second pass
+        if (PASS == 2) {
+            currentST = storeScopes.get(scopeName);
+            scopeSize = currentST.getScopeSize();
+            allocateScopeMemory(scopeSize);
+            currentST.clear();
+        }
+
+        visit(ctx.stat());
+
+        if (PASS == 1) {
+            adjustLabels();
+            storeScopes.put(scopeName, currentST);
+        }
+
+        freeScope();
+
+        if (PASS == 2) {
+            deallocateScopeMemory(scopeSize);
+        }
         return null;
     }
 
