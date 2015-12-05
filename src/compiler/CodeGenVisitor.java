@@ -1148,7 +1148,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
               
               //pop the Pair
               stack.pop();
-              
+              printStack();
               String pairSndType = stack.pop();
               String pairFirstType = stack.pop();
               
@@ -1286,7 +1286,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Print line statement ");
         }
         visit(ctx.expr());
-
+        printStack();
+        
         // Clear the stack
         String varType = stack.pop(); // Extract the type
         stack.pop(); // Clear the name
@@ -1306,7 +1307,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     // Creates link to print functions in main code
     private void printHelper(String type) {
         // Printing for array
-        if (Utils.isAnArray(type)) {
+        if (Utils.isAnArray(type) || Utils.isAPair(type) 
+        	|| Utils.isANullPair(type)) {
             addPrintReference();
             text.add("BL p_print_reference");
             return;
@@ -1521,11 +1523,18 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         // when doing
         // operations like a[i] = i
         visit(ctx.expr());
+        
+        printStack();
         String exprType = stack.pop();
         String exprName = stack.pop();
 
         if (PASS == 2) {
 
+          	// To handle pairs
+           if(Utils.isAPair(varType) || Utils.isANullPair(varType)){
+        	 text.add("LDR " + currentReg + ", =0");
+           }
+          
             // To handle arrays
             if (Utils.isArrayElem(varName)) {
                 storeToArrayElem(arrayName, varType, elemLoc);
@@ -1939,6 +1948,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Pairelementype pair");
 
         }
+        stack.push(ctx.PAIR().toString());
         return null;
     }
 
@@ -2049,6 +2059,16 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Pair literal");
         }
+        //dummy value for print TODO: MOOO
+        stack.push(".");
+        String pairLit = ctx.PAIRLITERAL().toString();
+        if(pairLit.equals("null")){
+          stack.push("pair");
+        }else{
+          stack.push(pairLit);
+        }
+        
+        
         return null;
     }
 
