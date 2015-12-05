@@ -745,7 +745,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
     private String checkDefinedVariable(ParserRuleContext ctx) {
         String curIdentToCheck = stack.peek();
-
+        
         // Object should take precedence
         IDENTIFIER object = currentST
                         .lookUpAllIdentifier(curIdentToCheck);
@@ -1128,18 +1128,35 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
         stack.push(varName);
         visit(ctx.type());
+        
         String varType = stack.peek();
 
         if (PASS == 1) {
             spPosition += spaceForType(varType);
             currentST.addLabel(varName, spPosition);
-
+            System.out.println("VARTYPE: " + varType);
             if (!varType.startsWith("Pair")
                             && !(Utils.isAnArray(varType))) {
                 currentST.addIdentifier(varName,
                                 new VARIABLE(varType));
             } else if (Utils.isAnArray(varType)) {
                 currentST.addIdentifier(varName, new ARRAY(varType));
+            }else{
+              //PAIR
+              System.out.println("OMG ITS A PAIR");
+              System.out.println("varName: " + varName);
+              
+              //pop the Pair
+              stack.pop();
+              
+              String pairSndType = stack.pop();
+              String pairFirstType = stack.pop();
+              
+              PAIR newPair = new PAIR(pairFirstType,pairSndType);
+              currentST.addIdentifier(varName, 
+            	  newPair);
+              
+              stack.push(newPair.toString());
             }
         }
         visit(ctx.assignRHS());
@@ -1476,8 +1493,22 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Assign RHS EXPR ");
         }
-        String varType = stack.pop();
-        String varName = stack.pop();
+        printStack();
+        currentST.printST();
+        String varType;
+        String varName;
+        if(stack.peek().equals("Pair")){
+          String pairType = stack.pop();
+          String sndType = stack.pop();
+          String fstType = stack.pop();
+          varType = pairType+"("+fstType+","+sndType+")";
+        }else if(Utils.isAPair(stack.peek())){
+          varType = stack.pop();
+        }else{
+          varType = stack.pop();
+        }
+        varName = stack.pop();
+        
         String elemLoc = null;
         String arrayName = null;
 
@@ -1587,8 +1618,16 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Assign RHS newpair");
         }
+        
+        if(PASS == 2){
+          if(stack.peek().equals("Pair")){
+        	//TODO: HOTFIX
+        	stack.pop();
+        	stack.pop();
+        	stack.pop();
+          }
+        }
         String pairReg = currentReg;
-
         
         if(PASS == 2){
           text.add("LDR r0, =8");
@@ -1598,13 +1637,14 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         lockReg();
         
         //TODO: MOOO
-        currentST.printST();
         
         visit(ctx.expr(0)); // Visit fst
+        System.out.println("AFTER EXPR 1");
+        
         String fstElemType = stack.pop();
         String fstElemValue = stack.pop();
         
-        printStack();
+        
         
         if(PASS == 2){
           if (fstElemType.equals("CHAR")
@@ -1641,6 +1681,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
         
         String pairVar = stack.pop();
+        System.out.println("PAIRVAR: "  + pairVar);
         if(PASS == 2){
           int pairSp = currentST.lookUpAllLabel(pairVar);
           if(pairSp > 0) {
@@ -1650,9 +1691,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
           }
         }
         
-        
         releaseReg();
-        printStack();
         
         return null;
     }
@@ -1844,6 +1883,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Type PAIRTYPE");
         }
         
+        printStack();
+        
         if(PASS == 1){
           String pairVarname = stack.peek();
           storeScopes.put(pairVarname, currentST);
@@ -1866,6 +1907,12 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Pairtype ");
         }
+        
+        visit(ctx.pairelementype(0));
+
+        visit(ctx.pairelementype(1));
+        stack.push("Pair");
+        printStack();
         return null;
     }
 
@@ -1874,6 +1921,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Pairelementype basetype");
         }
+        stack.push(ctx.BASETYPE().toString().toUpperCase());
         return null;
     }
 
@@ -1898,6 +1946,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Terminal " + node.toString());
         }
+        
         String terminalString = node.toString();
 
         if (PASS == 2) {
@@ -2007,12 +2056,13 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-Identifier");
         }
-
+        printStack();
         String varName = ctx.IDENT().toString();
         stack.push(varName);
 
         String varType = checkDefinedVariable(ctx);
         stack.push(varType);
+        printStack();
 
         if (PASS == 2) {
             loadFromMemory(varName, varType);
