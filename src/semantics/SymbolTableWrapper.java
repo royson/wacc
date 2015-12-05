@@ -146,6 +146,12 @@ public class SymbolTableWrapper<V> {
     public SymbolTableWrapper<V> getEncSymTable() {
         return encSymTable;
     }
+    
+    public void clear() {
+        stIdent = new SymbolTable<V, IDENTIFIER>();
+        stFunc = new SymbolTable<V, FUNCTION>();
+        stParam = new SymbolTable<V, IDENTIFIER>();
+    }
 
     public void printST() {
         System.out.println("----- Print ST -----");
