@@ -315,6 +315,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
     boolean overflowError = false;
     boolean throwRuntimeError = false;
     boolean arrayBounds = false;
+    boolean freePair = false;
 
     private void addDivideByZeroError() {
         if (divideByZeroError) {
@@ -417,6 +418,36 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         print.add("POP {pc}");
         addThrowRuntimeError();
 
+    }
+
+    private void addFreePair() {
+        if (freePair) {
+            return;
+        }
+        freePair = true;
+
+        int cMsgCount = messageCount;
+        String message = "\"NullReferenceError: dereference a null reference\\n\\0\"";
+
+        // Modify data
+        addMessageToData(message);
+
+        print.add("p_free_pair:");
+        print.add("PUSH {lr}");
+        print.add("CMP r0, #0");
+        print.add("LDREQ r0, =msg_0");
+        print.add("BEQ p_throw_runtime_error");
+        print.add("PUSH {r0}");
+        print.add("LDR r0, [r0]");
+        print.add("BL free");
+        print.add("LDR r0, [sp]");
+        print.add("LDR r0, [r0, #4]");
+        print.add("BL free");
+        print.add("POP {r0}");
+        print.add("BL free");
+        print.add("POP {pc}");
+        
+        addThrowRuntimeError();
     }
 
     // Other helper functions
@@ -1289,6 +1320,15 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Free statement");
         }
         visit(ctx.expr());
+        String exprType = stack.pop();
+        String exprName = stack.pop();
+
+        if (PASS == 2) {
+            text.add("MOV r0, " + currentReg);
+            text.add("BL p_free_pair");
+            addFreePair();
+        }
+
         return null;
     }
 
