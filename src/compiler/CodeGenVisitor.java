@@ -942,7 +942,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         releaseReg();
         return;
     }
-    
+
     private void loadFromPairElem(String varName, String varType,
                     boolean fst) {
         if (DEBUG) {
@@ -951,9 +951,9 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
 
         String originalReg = currentReg;
-//        lockReg();
+        // lockReg();
 
-//        loadFromMemory(varName, "PAIR"); // Special override for pair
+        // loadFromMemory(varName, "PAIR"); // Special override for pair
         text.add("MOV r0, " + currentReg);
         text.add("BL p_check_null_pointer");
         addCheckNullPointer();
@@ -964,12 +964,12 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
                             + ", #4]");
         }
 
-//        if (varType.equals("BOOL") || varType.equals("CHAR")) {
-//            text.add("STRB " + originalReg + ", [" + currentReg + "]");
-//        } else {
-//            text.add("STR " + originalReg + ", [" + currentReg + "]");
-//        }
-//        releaseReg();
+        // if (varType.equals("BOOL") || varType.equals("CHAR")) {
+        // text.add("STRB " + originalReg + ", [" + currentReg + "]");
+        // } else {
+        // text.add("STR " + originalReg + ", [" + currentReg + "]");
+        // }
+        // releaseReg();
         return;
     }
 
@@ -1331,11 +1331,9 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         int offset = currentST.lookUpAllLabel(varName);
 
         if (PASS == 2) {
-            if (offset > 0) {
-                text.add("ADD " + currentReg + ", sp, #" + offset);
-            }
-            if(fstSnd != null) {
-                if(fstSnd.equals(".fst")) {
+            text.add("ADD " + currentReg + ", sp, #" + offset);
+            if (fstSnd != null) {
+                if (fstSnd.equals(".fst")) {
                     loadFromPairElem(varName, varType, true);
                 } else {
                     loadFromPairElem(varName, varType, false);
