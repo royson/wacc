@@ -1001,13 +1001,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             offset = currentST.lookUpAllLabel(varName);
         }
 
-        // TODO: HOTFIX for null
-        if (varName.equals(".")) {
-            System.out.println("NULL");
-            text.add("LDR r4, =0");
-            return;
-        }
-
         if (offset == 0) {
             text.add("LDR r4, [sp]");
         } else {
