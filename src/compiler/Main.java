@@ -109,6 +109,7 @@ public class Main {
         writer.write(".text\n");
         writer.write("\n");
         writer.write(".global main\n");
+        
         for (String s : text) {
             printString(writer, s);
         }

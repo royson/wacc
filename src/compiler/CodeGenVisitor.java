@@ -994,17 +994,20 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
     private void loadFromPair(String varName) {
         int offset = 0;
-        System.out.println(varName);
+        if (DEBUG) {
+            System.out.println("LOAD FROM PAIR " + varName);
+        }
         if (currentST.lookUpAllLabel(varName) != null) {
             offset = currentST.lookUpAllLabel(varName);
         }
-        
+
         // TODO: HOTFIX for null
-        if(varName.equals(".")) {
+        if (varName.equals(".")) {
+            System.out.println("NULL");
             text.add("LDR r4, =0");
             return;
         }
-        
+
         if (offset == 0) {
             text.add("LDR r4, [sp]");
         } else {
@@ -1351,9 +1354,9 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
         if (PASS == 2) {
             // assignReg(); // Set the register after visiting expression
-            if (Utils.isANullPair(varType) || Utils.isAPair(varType)) {
-                loadFromPair(varName);
-            }
+//            if (Utils.isANullPair(varType) || Utils.isAPair(varType)) {
+//                loadFromPair(varName);
+//            }
             text.add("MOV r0, " + currentReg + "");
             printHelper(varType);
         }
@@ -1377,9 +1380,9 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             // TODO: [Print] - figure out what this is for
             // assignReg(); // Set the register after visiting expression
 
-            if (Utils.isANullPair(varType) || Utils.isAPair(varType)) {
-                loadFromPair(varName);
-            }
+//            if (Utils.isANullPair(varType) || Utils.isAPair(varType)) {
+//                loadFromPair(varName);
+//            }
             text.add("MOV r0, " + currentReg + "");
             printHelper(varType);
             text.add("BL p_print_ln");
@@ -1662,7 +1665,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
             // To handle pairs
             if (Utils.isAPair(varType) || Utils.isANullPair(varType)) {
-                text.add("LDR " + currentReg + ", =0");
+                System.out.println("TO HANDLE PAIRS " + varName + " "
+                                + varType + " " + exprName + " " + exprType);
             }
 
             // To handle arrays
@@ -2021,11 +2025,11 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         stack.push(exprType);
 
         if (PASS == 2 && !lhs) {
-            if (offset == 0) {
-                text.add("LDR r4, [sp]");
-            } else {
-                text.add("LDR r4, [sp, #" + offset + "]");
-            }
+//            if (offset == 0) {
+//                text.add("LDR r4, [sp]");
+//            } else {
+//                text.add("LDR r4, [sp, #" + offset + "]");
+//            }
             text.add("MOV r0, " + currentReg);
             text.add("BL p_check_null_pointer");
             addCheckNullPointer();
@@ -2095,7 +2099,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         int strOffset = 0;
 
         if (!lhs) {
-            currentST.lookUpAllLabel(strName);
+            strOffset = currentST.lookUpAllLabel(strName);
         }
 
         // stack.push(strName);
@@ -2104,11 +2108,11 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         stack.push(exprType);
 
         if (PASS == 2 && !lhs) {
-            if (offset == 0) {
-                text.add("LDR r4, [sp]");
-            } else {
-                text.add("LDR r4, [sp, #" + offset + "]");
-            }
+//            if (offset == 0) {
+//                text.add("LDR r4, [sp]");
+//            } else {
+//                text.add("LDR r4, [sp, #" + offset + "]");
+//            }
             text.add("MOV r0, " + currentReg);
             text.add("BL p_check_null_pointer");
             addCheckNullPointer();
@@ -2122,7 +2126,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (PASS == 2 && !lhs) {
             // String elemType = stack.pop();
             // String elemType = stack.peek();
-            System.out.println(elemType + " " + elemName);
             if (elemType.equals("CHAR") || elemType.equals("BOOL")) {
                 text.add("LDRSB " + currentReg + ", [" + currentReg
                                 + "]");
@@ -2368,14 +2371,15 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
         String varType = checkDefinedVariable(ctx);
         stack.push(varType);
+        
+        printStack();
 
         if (PASS == 2) {
-            System.out.println("LOAD FROM MEMORY " + varName + " "
-                            + varType);
-            if (!Utils.isAPair(varType)
+            /*if (!Utils.isAPair(varType)
                             && !Utils.isANullPair(varType)) {
                 loadFromMemory(varName, varType);
-            }
+            }*/
+            loadFromMemory(varName, varType);
         }
         return null;
     }
