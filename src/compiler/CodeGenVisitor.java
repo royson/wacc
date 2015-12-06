@@ -998,6 +998,13 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (currentST.lookUpAllLabel(varName) != null) {
             offset = currentST.lookUpAllLabel(varName);
         }
+        
+        // TODO: HOTFIX for null
+        if(varName.equals(".")) {
+            text.add("LDR r4, =0");
+            return;
+        }
+        
         if (offset == 0) {
             text.add("LDR r4, [sp]");
         } else {
@@ -1370,10 +1377,10 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             // TODO: [Print] - figure out what this is for
             // assignReg(); // Set the register after visiting expression
 
-            text.add("MOV r0, " + currentReg + "");
             if (Utils.isANullPair(varType) || Utils.isAPair(varType)) {
                 loadFromPair(varName);
             }
+            text.add("MOV r0, " + currentReg + "");
             printHelper(varType);
             text.add("BL p_print_ln");
             addPrintLN();
