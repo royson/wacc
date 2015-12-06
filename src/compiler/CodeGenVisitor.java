@@ -865,37 +865,6 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         }
         int offset = calculateOffset(varName);
 
-        // HOTFIX for pair
-        Object tempObj = null;
-        boolean isPair = false;
-        if (currentST.lookUpAllIdentifier(varName) != null) {
-            tempObj = currentST.lookUpAllIdentifier(varName);
-            isPair = Utils.isAPair(tempObj.toString());
-        }
-
-        if (isPair) {
-            // Store pair into memory
-            System.out.println("-Storing to either pair fst / pair snd");
-            String originalReg = currentReg;
-            lockReg();
-
-            loadFromMemory(varName, "PAIR"); // Special override for pair
-            text.add("MOV r0, " + currentReg);
-            text.add("BL p_check_null_pointer");
-            addCheckNullPointer();
-            text.add("LDR " + currentReg + ", [" + currentReg + "]");
-
-            if (varType.equals("BOOL") || varType.equals("CHAR")) {
-                text.add("STRB " + originalReg + ", [" + currentReg
-                                + "]");
-            } else {
-                text.add("STR " + originalReg + ", [" + currentReg
-                                + "]");
-            }
-            releaseReg();
-            return;
-        }
-
         if (varType.equals("BOOL") || varType.equals("CHAR")) {
             if (offset != 0) {
                 text.add("STRB " + currentReg + ", [sp, #" + offset
