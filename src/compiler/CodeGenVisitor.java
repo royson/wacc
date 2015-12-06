@@ -1374,9 +1374,9 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             text.add("BL p_free_pair");
             addFreePair();
 
-            // Hotfix for doublefree / free
-//            text.add("MOV r0, #0");
-//            text.add("STR r0, [sp]");
+//          Hotfix for doublefree / free to set pair to null
+            text.add("MOV r0, #0");
+            text.add("STR r0, [sp]");
         }
 
         return null;
