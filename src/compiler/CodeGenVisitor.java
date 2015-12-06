@@ -446,7 +446,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         print.add("POP {r0}");
         print.add("BL free");
         print.add("POP {pc}");
-        
+
         addThrowRuntimeError();
     }
 
@@ -942,6 +942,36 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         releaseReg();
         return;
     }
+    
+    private void loadFromPairElem(String varName, String varType,
+                    boolean fst) {
+        if (DEBUG) {
+            System.out.println("-Loading from either pair fst / pair snd "
+                            + varName + " " + varType);
+        }
+
+        String originalReg = currentReg;
+//        lockReg();
+
+//        loadFromMemory(varName, "PAIR"); // Special override for pair
+        text.add("MOV r0, " + currentReg);
+        text.add("BL p_check_null_pointer");
+        addCheckNullPointer();
+        if (fst) {
+            text.add("LDR " + currentReg + ", [" + currentReg + "]");
+        } else {
+            text.add("LDR " + currentReg + ", [" + currentReg
+                            + ", #4]");
+        }
+
+//        if (varType.equals("BOOL") || varType.equals("CHAR")) {
+//            text.add("STRB " + originalReg + ", [" + currentReg + "]");
+//        } else {
+//            text.add("STR " + originalReg + ", [" + currentReg + "]");
+//        }
+//        releaseReg();
+        return;
+    }
 
     private void storeArrayLitToMemory(String varName,
                     String varType, String arrayReg, int offset) {
@@ -1288,12 +1318,29 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Read statement");
         }
         visit(ctx.assignLHS());
+
+        // Hotfix for pair
+        String fstSnd = null;
+        if (stack.peek().equals(".fst")
+                        || stack.peek().equals(".snd")) {
+            fstSnd = stack.pop();
+        }
+
         String varType = stack.pop();
         String varName = stack.pop();
+        int offset = currentST.lookUpAllLabel(varName);
+
         if (PASS == 2) {
-            // assignReg(); // Set the register after visiting expression
-            text.add("ADD " + currentReg + ", sp, #"
-                            + currentST.lookUpAllLabel(varName));
+            if (offset > 0) {
+                text.add("ADD " + currentReg + ", sp, #" + offset);
+            }
+            if(fstSnd != null) {
+                if(fstSnd.equals(".fst")) {
+                    loadFromPairElem(varName, varType, true);
+                } else {
+                    loadFromPairElem(varName, varType, false);
+                }
+            }
             text.add("MOV r0, " + currentReg);
             readHelper(varType);
         }
@@ -1327,7 +1374,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             text.add("MOV r0, " + currentReg);
             text.add("BL p_free_pair");
             addFreePair();
-            
+
             // Hotfix for doublefree / free
             text.add("MOV r0, #0");
             text.add("STR r0, [sp]");
