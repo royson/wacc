@@ -2357,6 +2357,10 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         } else {
             stack.push(pairLit);
         }
+        
+        if(PASS == 2) {
+            text.add("LDR " + currentReg + ", =0");
+        }
 
         return null;
     }
