@@ -1331,13 +1331,14 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         int offset = currentST.lookUpAllLabel(varName);
 
         if (PASS == 2) {
-            text.add("ADD " + currentReg + ", sp, #" + offset);
             if (fstSnd != null) {
                 if (fstSnd.equals(".fst")) {
                     loadFromPairElem(varName, varType, true);
                 } else {
                     loadFromPairElem(varName, varType, false);
                 }
+            } else {
+                text.add("ADD " + currentReg + ", sp, #" + offset);
             }
             text.add("MOV r0, " + currentReg);
             readHelper(varType);
