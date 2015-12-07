@@ -111,7 +111,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-freeScope");
         }
-
+        
+//        currentST.printST();
         currentST = currentST.getEncSymTable();
         spPosition = currentST.getSpPos();
         stack = (Stack<String>) saveStack.clone();
@@ -1000,7 +1001,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Load from memory " + varName + " "
                             + varType);
         }
-        currentST.printST();
+//        currentST.printST();
         int offset = calculateOffset(varName);
         System.out.println("========================OFFSET : "  + offset);
         if (offset == 0) {
@@ -1518,7 +1519,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         case "INT":
             addPrintINT();
             text.add("BL p_print_int");
-            currentST.printST();
+//            currentST.printST();
             break;
         case "CHAR[]":
             addPrintSTRING();
@@ -2492,7 +2493,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         String varType = checkDefinedVariable(ctx);
         stack.push(varType);
 
-        printStack();
+//        printStack();
 
         if (PASS == 2) {
             /*

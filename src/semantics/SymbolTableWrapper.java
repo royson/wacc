@@ -125,10 +125,11 @@ public class SymbolTableWrapper<V> {
         while (temp != null) {
 
             Integer obj = temp.stLabel.lookUp(name);
+//            System.out.println(obj + offset);
             if (obj != null) {
                 return obj + offset;
             }
-            offset += this.getScopeSize(); // For correct memory location in
+            offset += temp.getScopeSize(); // For correct memory location in
                                            // nested scopes
             temp = temp.encSymTable;
         }
