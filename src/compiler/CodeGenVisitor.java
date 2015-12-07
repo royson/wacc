@@ -111,8 +111,8 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         if (DEBUG) {
             System.out.println("-freeScope");
         }
-        
-//        currentST.printST();
+
+        // currentST.printST();
         currentST = currentST.getEncSymTable();
         spPosition = currentST.getSpPos();
         stack = (Stack<String>) saveStack.clone();
@@ -1001,9 +1001,10 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             System.out.println("-Load from memory " + varName + " "
                             + varType);
         }
-//        currentST.printST();
+        // currentST.printST();
         int offset = calculateOffset(varName);
-        System.out.println("========================OFFSET : "  + offset);
+        System.out.println("========================OFFSET : "
+                        + offset);
         if (offset == 0) {
             if (varType.equals("CHAR") || varType.equals("BOOL")) {
                 text.add("LDRSB " + currentReg + ", [sp]");
@@ -1023,28 +1024,13 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
     private int calculateOffset(String varName) {
         int offset = 0;
-        System.out.println("LOOKING UP.." + varName);
-//        if(varName.equals("comma")){
-//          System.out.println("MOO");
-//          for(Map.Entry<String, SymbolTableWrapper<String>> m : storeScopes.entrySet()){
-//            m.getValue().printST();
-//          }
-//        }
-        
+
         if (currentST.lookUpAllLabel(varName + ".p") != null) {
             offset = currentST.lookUpAllLabel(varName + ".p");
         } else if (currentST.lookUpIdentifier(varName) == null) {
             offset = currentST.getScopeSize();
-            if(varName.equals("comma")){
-              System.out.println("SRCSRC" + offset);
-              System.out.println(currentST.getEncSymTable().lookUpAllLabel(
-                            varName));
-            }
             offset += currentST.getEncSymTable().lookUpAllLabel(
                             varName);
-            if(varName.equals("comma")){
-              System.out.println("DESTDEST" + offset);
-            }
         } else {
             offset = currentST.lookUpLabel(varName);
         }
@@ -1395,7 +1381,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
             text.add("BL p_free_pair");
             addFreePair();
 
-//          Hotfix for doublefree / free to set pair to null
+            // Hotfix for doublefree / free to set pair to null
             text.add("MOV r0, #0");
             text.add("STR r0, [sp]");
         }
@@ -1519,7 +1505,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         case "INT":
             addPrintINT();
             text.add("BL p_print_int");
-//            currentST.printST();
+            // currentST.printST();
             break;
         case "CHAR[]":
             addPrintSTRING();
@@ -1852,12 +1838,13 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         for (ExprContext ectx : exprs) {
             visit(ectx);
             String exprType = stack.pop();
-            String exprName = stack.pop();            
+            String exprName = stack.pop();
 
             if (PASS == 2) {
                 storeArrayLitToMemory(exprName, exprType, arrayReg,
                                 memoryPos);
             }
+
             memoryPos += typeSpace;
         }
 
@@ -2236,10 +2223,12 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
 
         String elemType = stack.pop();
         String elemName = stack.pop();
+        System.out.println("SND ELEM BLAH BLAH " + elemType + " " + elemName + " " + strType + " " + strName);
+        currentST.printST();
         if (PASS == 2 && !lhs) {
             // String elemType = stack.pop();
             // String elemType = stack.peek();
-            if (elemType.equals("CHAR") || elemType.equals("BOOL")) {
+            if (strType.equals("CHAR") || strType.equals("BOOL")) {
                 text.add("LDRSB " + currentReg + ", [" + currentReg
                                 + "]");
                 if (strOffset == 0) {
@@ -2303,7 +2292,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
                 String pairVarname = stack.peek();
                 spPosition += spaceForType("pair");
                 currentST.addLabel(pairVarname, spPosition);
-                //storeScopes.put(pairVarname, currentST);
+                // storeScopes.put(pairVarname, currentST);
             }
         }
 
@@ -2493,7 +2482,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
         String varType = checkDefinedVariable(ctx);
         stack.push(varType);
 
-//        printStack();
+        // printStack();
 
         if (PASS == 2) {
             /*
@@ -2769,7 +2758,7 @@ public class CodeGenVisitor extends WACCParserBaseVisitor<Void> {
                 } else {
                     currentST.addParam(param.getName(), param);
                 }
-                
+
                 currentST.addLabel(param.getName() + ".p", paramLoc);
                 paramLoc += spaceForType(paramType);
             }
