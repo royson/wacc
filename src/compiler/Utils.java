@@ -10,6 +10,10 @@ public class Utils {
     private final static String CHAR = "CHAR";
     private final static String STRING = "CHAR[]";
     
+    public static boolean isTypeABoolOrChar(String varType){
+      return varType.equals("BOOL") || varType.equals("CHAR");
+    }
+    
     public static boolean isAnArray(String type) {
         // STRING is not an array
         if (type.equals(STRING))
